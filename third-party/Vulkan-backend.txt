@@ -1,0 +1,6 @@
+
+Vulkan backend: nyancodex/whisper-server-vulkan-windows v0.1.0
+https://github.com/nyancodex/whisper-server-vulkan-windows/releases/tag/v0.1.0
+Bundle SHA256: 587d04a2805737436d134ab9e02c80437f41a7cb64018a7cd4d8f65a76a56af1
+whisper.cpp and ggml: MIT; MinGW GCC runtime: GCC Runtime Library Exception.
+This community prebuilt is bundled alongside the separate official CPU build.

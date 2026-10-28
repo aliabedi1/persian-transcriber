@@ -1,9 +1,10 @@
 const { app, BrowserWindow, ipcMain, dialog, clipboard, session } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
-const { transcribe, subtitles } = require('./engine.cjs');
+const { transcribe, subtitles, detectGpu } = require('./engine.cjs');
 const root = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
 let win, selected, controller;
+let gpuInfo;
 
 async function exists(file) { return fs.access(file).then(() => true, () => false); }
 app.whenReady().then(async () => {
@@ -18,9 +19,10 @@ app.whenReady().then(async () => {
 });
 app.on('window-all-closed', () => { controller?.abort(); app.quit(); });
 ipcMain.handle('status', async () => {
+  gpuInfo = await detectGpu(root);
   const model = path.join(root, 'models/ggml-large-v3-turbo-q5_0.bin');
   const size = await fs.stat(model).then(s => s.size, () => 0);
-  return { ready: size === 574041195 && await exists(path.join(root, 'runtime/whisper/Release/whisper-cli.exe')) && await exists(path.join(root, 'runtime/ffmpeg/ffmpeg.exe')), modelSize: size };
+  return { gpu: gpuInfo, ready: size === 574041195 && await exists(path.join(root, 'runtime/whisper/Release/whisper-cli.exe')) && await exists(path.join(root, 'runtime/ffmpeg/ffmpeg.exe')), modelSize: size };
 });
 ipcMain.handle('choose', async () => {
   if (controller) return null;
@@ -30,12 +32,24 @@ ipcMain.handle('choose', async () => {
   const stat = await fs.stat(selected);
   return { name: path.basename(selected), size: stat.size };
 });
-ipcMain.handle('transcribe', async (_event, language) => {
+ipcMain.handle('transcribe', async (_event, language, preference = 'auto') => {
   if (controller) return { error: 'A transcription is already running.' };
   if (!selected) return { error: 'Choose a file first.' };
   if (!['fa','auto','en','ar'].includes(language)) return { error: 'Unsupported language.' };
+  if (!['auto','cpu','gpu'].includes(preference)) return { error: 'Invalid processor choice.' };
+  gpuInfo = gpuInfo || await detectGpu(root);
+  if (preference === 'gpu' && !gpuInfo.available) return { error: 'No compatible Vulkan GPU is available. Choose CPU or Auto.' };
+  const device = preference === 'cpu' ? 'cpu' : gpuInfo.available ? 'gpu' : 'cpu';
   controller = new AbortController();
-  try { return await transcribe({ input: selected, language, root, signal: controller.signal, onProgress: p => { if (!win.isDestroyed()) win.webContents.send('progress', p); } }); }
+  try {
+    const execute = device => transcribe({ input: selected, language, root, device, signal: controller.signal, onProgress: p => { if (!win.isDestroyed()) win.webContents.send('progress', p); } });
+    try { return { ...await execute(device), device }; }
+    catch (error) {
+      if (preference !== 'auto' || device !== 'gpu' || controller.signal.aborted) throw error;
+      win.webContents.send('progress', { stage: 'GPU unavailable. Retrying on CPU', percent: 0 });
+      return { ...await execute('cpu'), device: 'cpu', fallback: true };
+    }
+  }
   catch (error) { return { error: controller.signal.aborted ? 'Transcription cancelled.' : error.message }; }
   finally { controller = null; }
 });

@@ -17,6 +17,8 @@ if (!$taskAsset.digest.StartsWith('sha256:')) { throw 'GitHub did not provide a 
 Download-Checked $taskAsset.browser_download_url $taskEngine $taskAsset.digest.Substring(7)
 Expand-Archive -LiteralPath $taskEngine -DestinationPath runtime/whisper -Force
 Download-Checked 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin' 'models/ggml-large-v3-turbo-q5_0.bin' '394221709CD5AD1F40C46E6031CA61BCE88931E6E088C188294C6D5A55FFA7E2'
+Download-Checked 'https://github.com/nyancodex/whisper-server-vulkan-windows/releases/download/v0.1.0/whisper-server-bundle.zip' 'runtime/vulkan.zip' '587d04a2805737436d134ab9e02c80437f41a7cb64018a7cd4d8f65a76a56af1'
+Expand-Archive -LiteralPath runtime/vulkan.zip -DestinationPath runtime/vulkan -Force
 $taskFfmpeg = Get-Command ffmpeg.exe -ErrorAction SilentlyContinue
 if (!$taskFfmpeg) { throw 'Install FFmpeg with: winget install --id Gyan.FFmpeg.Shared -e. Reopen PowerShell, then run setup.ps1 again.' }
 $taskFfmpegDir = Split-Path $taskFfmpeg.Source

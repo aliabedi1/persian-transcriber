@@ -15,3 +15,8 @@ test('process errors and cancellation reach the caller', async () => {
   controller.abort();
   await assert.rejects(job, /abort/i);
 });
+
+test('GPU detection handles a missing backend without breaking CPU mode', async () => {
+  const { detectGpu } = require('../electron/engine.cjs');
+  assert.equal((await detectGpu(require('node:os').tmpdir())).available, false);
+});

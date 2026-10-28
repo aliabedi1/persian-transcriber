@@ -14,9 +14,9 @@ import './App.css'
 
 type Segment = { start: number; end: number; text: string }
 declare global { interface Window { transcriber: {
-  status: () => Promise<{ ready: boolean }>;
+  status: () => Promise<{ ready: boolean; gpu: { available: boolean; name: string } }>;
   choose: () => Promise<{ name: string; size: number } | null>;
-  transcribe: (language: string) => Promise<{ segments?: Segment[]; error?: string }>;
+  transcribe: (language: string, device: string) => Promise<{ segments?: Segment[]; error?: string; device?: string; fallback?: boolean }>;
   cancel: () => Promise<void>;
   save: (data: { format: string; text: string; segments: Segment[] }) => Promise<boolean>;
   copy: (text: string) => Promise<void>;
@@ -28,6 +28,8 @@ export default function App() {
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); document.documentElement.style.colorScheme = theme; localStorage.setItem('ava-theme', theme) }, [theme])
   const [ready, setReady] = useState<boolean | null>(null)
   const [file, setFile] = useState<{ name: string; size: number } | null>(null)
+  const [device, setDevice] = useState(() => localStorage.getItem('ava-device') || 'auto')
+  const [gpu, setGpu] = useState({ available: false, name: 'Checking GPU…' })
   const [language, setLanguage] = useState('fa')
   const [segments, setSegments] = useState<Segment[]>([])
   const [busy, setBusy] = useState(false)
@@ -37,7 +39,7 @@ export default function App() {
   const text = segments.map(s => s.text).join('\n')
   useEffect(() => {
     if (!window.transcriber) return
-    window.transcriber.status().then(s => setReady(s.ready)).catch(e => setError(String(e)))
+    window.transcriber.status().then(s => { setReady(s.ready); setGpu(s.gpu) }).catch(e => setError(String(e)))
     return window.transcriber.onProgress(setProgress)
   }, [])
   useEffect(() => { if (notice) { const id = setTimeout(() => setNotice(''), 4000); return () => clearTimeout(id) } }, [notice])
@@ -48,9 +50,9 @@ export default function App() {
   async function start() {
     setBusy(true); setSegments([]); setError(''); setNotice(''); setProgress({ stage: 'Preparing audio', percent: 0 })
     try {
-      const result = await window.transcriber.transcribe(language)
+      const result = await window.transcriber.transcribe(language, device)
       if (result.error) setError(result.error)
-      else { setSegments(result.segments || []); setNotice(result.segments?.length ? 'Transcription complete. Review and save your text.' : 'No speech was detected. Try a clearer recording.') }
+      else { setSegments(result.segments || []); setNotice(result.segments?.length ? `Transcription complete using ${result.device?.toUpperCase() || 'CPU'}${result.fallback ? ' (GPU fallback)' : ''}. Review and save your text.` : 'No speech was detected. Try a clearer recording.') }
     } catch (e) { setError(String(e)) } finally { setBusy(false) }
   }
   async function save(format: string) {
@@ -69,7 +71,7 @@ export default function App() {
             <CardContent className="flex flex-col gap-5">
               <div className="file-well"><FileAudio aria-hidden="true" /><p>{file ? file.name : 'Audio or video'}</p><span>{file ? `${(file.size / 1048576).toFixed(1)} MB · stays on this computer` : 'MP3, M4A, MP4, WAV, OGG and more'}</span><Button variant="outline" onClick={choose} disabled={busy}><FolderOpen data-icon="inline-start" />{file ? 'Change file' : 'Choose file'}</Button></div>
               <FieldGroup><Field><FieldLabel htmlFor="language">Spoken language</FieldLabel><NativeSelect id="language" value={language} onChange={e => setLanguage(e.target.value)} disabled={busy} className="w-full"><NativeSelectOption value="fa">Persian · فارسی</NativeSelectOption><NativeSelectOption value="auto">Detect automatically</NativeSelectOption><NativeSelectOption value="en">English</NativeSelectOption><NativeSelectOption value="ar">Arabic · العربية</NativeSelectOption></NativeSelect><FieldDescription>Choose Persian for Farsi recordings.</FieldDescription></Field></FieldGroup>
-              <Separator /><div className="model-note"><AudioLines aria-hidden="true" /><div><strong>Whisper large-v3 turbo</strong><p>Multilingual · runs on your CPU</p></div><Badge variant="outline">{ready ? 'Ready' : 'Checking'}</Badge></div>
+              <FieldGroup><Field><FieldLabel htmlFor="processor">Processor</FieldLabel><NativeSelect id="processor" value={device} disabled={busy} onChange={e => { setDevice(e.target.value); localStorage.setItem('ava-device', e.target.value) }} className="w-full"><NativeSelectOption value="auto">Auto · {gpu.available ? 'GPU' : 'CPU'}</NativeSelectOption><NativeSelectOption value="gpu" disabled={!gpu.available}>GPU · Vulkan</NativeSelectOption><NativeSelectOption value="cpu">CPU</NativeSelectOption></NativeSelect><FieldDescription>{gpu.name}</FieldDescription></Field></FieldGroup><Separator /><div className="model-note"><AudioLines aria-hidden="true" /><div><strong>Whisper large-v3 turbo</strong><p>{device === 'cpu' || !gpu.available ? 'CPU processing' : 'GPU acceleration'}</p></div><Badge variant="outline">{ready ? 'Ready' : 'Checking'}</Badge></div>
             </CardContent><CardFooter><Button className="w-full" size="lg" onClick={start} disabled={!file || !ready || busy}>{busy ? 'Transcribing…' : 'Transcribe recording'}<ArrowRight data-icon="inline-end" /></Button></CardFooter></Card>
           <div className="privacy-note"><ShieldCheck aria-hidden="true" /><div><strong>Your recordings stay yours.</strong><p>No uploads, accounts or usage limits. Once set up, you can disconnect the internet.</p></div></div>
         </aside>

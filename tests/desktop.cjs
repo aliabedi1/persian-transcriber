@@ -35,6 +35,8 @@ const os = require('node:os');
       await page.getByRole('button', { name: 'Choose file', exact: true }).click();
       await page.getByRole('button', { name: 'Transcribe recording', exact: true }).click();
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).waitFor({ timeout: 180000 });
+      const detected = await page.evaluate(() => window.transcriber.status());
+      await page.getByRole('status').filter({ hasText: detected.gpu.available ? 'using GPU' : 'using CPU' }).waitFor();
       console.log('PERSIAN_RESULT', await page.getByRole('textbox', { name: 'Passage 1', exact: true }).inputValue());
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).fill('سلام، این متن ویرایش شده است.');
       await page.getByRole('button', { name: 'Copy', exact: true }).click();
