@@ -5,7 +5,7 @@ A Windows app that turns Persian audio and video into editable text. Transcripti
 ## Install
 
 1. Open the [latest release](https://github.com/aliabedi1/persian-transcriber/releases/latest).
-2. Download **Ava-Setup-1.1.0-x64.exe** and run it.
+2. Download **Ava-Setup-1.2.0-x64.exe** and run it.
 3. Open **Ava** from the desktop or Start menu.
 
 The installer includes the models and tools. No Python, Node.js, or separate model download is needed. The download is about **1.7 GB**; the installed app uses about **2.3 GB**. Allow extra disk space during installation.
@@ -20,11 +20,11 @@ The installer is unsigned, so Windows may show a publisher warning. Uninstall th
 4. Click **تبدیل به متن / Transcribe recording**.
 5. Review and edit the passages. Use **Copy**, **TXT**, **SRT**, or **VTT** to save the result.
 
-On the main branch, completed transcriptions are saved automatically as TXT, SRT, and VTT under **Documents/Ava**, in date folders. Use **Change folder** to choose another location. Windows, Linux, and macOS folder locations come from the OS. Changing the folder affects future jobs; existing files stay where they were saved.
+Completed transcriptions are saved automatically as TXT, SRT, and VTT under **Documents/Ava**, in date folders. Use **Change folder** to choose another location. Windows, Linux, and macOS folder locations come from the OS. Changing the folder affects future jobs; existing files stay where they were saved.
 
 The main page lists the latest five transcriptions. Use **All history / سوابق** to browse entries grouped by date and reopen them without the original recording. Edits can be saved with **Save changes / ذخیرهٔ تغییرات**. History and settings are stored in a local SQLite database in the app data folder. If automatic file saving fails, the app keeps the history entry and offers a retry.
 
-The 1.1.0 installer still requires manual export; automatic saving and history are currently on main.
+Version 1.2.0 includes automatic saving, SQLite history, timers, and the updated interface.
 
 Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video files must contain an audio track.
 
@@ -33,7 +33,7 @@ Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video f
 | Accuracy | **Higher accuracy** uses large-v3 Q5_0. **Faster** uses large-v3-turbo Q5_0. A larger model is slower and does not always give a better result. |
 | Processor | **Auto** uses a detected Vulkan GPU, with CPU fallback. Select **CPU** or **GPU** to choose manually. GPU mode needs a compatible driver. |
 | Interface | **فارسی** uses RTL; **English** uses LTR. This is separate from the recording language. |
-| Appearance | System (default), Light, and Dark are available in the header on main. System follows OS changes until you choose an override. |
+| Appearance | System (default), Light, and Dark are available in the header. System follows OS changes until you choose an override. |
 
 ## Screenshots
 
@@ -49,7 +49,7 @@ History groups saved transcriptions by date:
 
 ![Transcription history grouped by date](docs/screenshots/history.png)
 
-Screenshots show the main branch. Timers, the System/Light/Dark selector, automatic saving, and history are on main; the 1.1.0 installer predates those changes. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
+Screenshots show version 1.2.0. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
 
 ## What to expect
 
