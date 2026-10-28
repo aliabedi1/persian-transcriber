@@ -70,6 +70,7 @@ const os = require('node:os');
       await page.getByText(/Process exited/).waitFor();
       await fs.rm(bad);
     }
+    await page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }).selectOption('fa');
     assert.deepEqual(errors, []);
     console.log('Desktop integration passed: readiness, IPC, renderer isolation, network blocking' + (fixture ? ', Persian inference, editing, clipboard, TXT/SRT/VTT.' : '.'));
   } finally { await app.close(); }
