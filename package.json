@@ -13,7 +13,8 @@
     "test:desktop": "node tests/desktop.cjs",
     "pack": "npm run build && electron-builder --win --dir",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
-    "test:repetition": "node tests/repetition.cjs"
+    "test:repetition": "node tests/repetition.cjs",
+    "test:timing": "node --test tests/timing.test.mjs && node tests/timing-desktop.cjs"
   },
   "devDependencies": {
     "@base-ui/react": "^1.9.0",

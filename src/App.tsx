@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Moon, Sun, AudioLines, FolderOpen, FileAudio, ArrowRight, Copy, Download, Check, Square, CircleAlert, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { Progress, ProgressLabel, ProgressValue } from '@/components/ui/progress'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDuration, estimateRemaining } from './lib/timing'
 import { persian } from './i18n'
 import avaIcon from './assets/ava-icon.png'
 import './App.css'
@@ -41,6 +42,10 @@ export default function App() {
   const [gpu, setGpu] = useState({ available: false, name: t("Checking GPU…") })
   const [language, setLanguage] = useState('fa')
   const [segments, setSegments] = useState<Segment[]>([])
+  const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [clockNow, setClockNow] = useState(0)
+  const [etaDeadline, setEtaDeadline] = useState<number | null>(null)
+  const phase = useRef({ stage: '', started: 0, percent: 0 })
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState({ stage: t("Starting"), percent: 0 })
   const [error, setError] = useState(() => window.transcriber ? '' : 'Open Ava using the desktop launcher.')
@@ -49,20 +54,38 @@ export default function App() {
   useEffect(() => {
     if (!window.transcriber) return
     window.transcriber.status().then(s => { setReady(s.ready); setGpu(s.gpu) }).catch(e => setError(String(e)))
-    return window.transcriber.onProgress(setProgress)
+    return window.transcriber.onProgress(p => {
+      const now = performance.now()
+      if (p.stage !== phase.current.stage || p.percent < phase.current.percent || p.percent === 0) {
+        phase.current = { stage: p.stage, started: now, percent: p.percent }
+        setEtaDeadline(null)
+      } else {
+        const remaining = estimateRemaining(now - phase.current.started, p.percent)
+        setEtaDeadline(remaining === null ? null : now + remaining)
+        phase.current.percent = p.percent
+      }
+      setProgress(p)
+    })
   }, [])
   useEffect(() => { if (notice) { const id = setTimeout(() => setNotice(''), 4000); return () => clearTimeout(id) } }, [notice])
+  useEffect(() => {
+    if (!busy) return
+    const id = setInterval(() => setClockNow(performance.now()), 1000)
+    return () => clearInterval(id)
+  }, [busy])
   async function choose() {
-    try { const chosen = await window.transcriber.choose(); if (chosen) { setFile(chosen); setSegments([]); setError(''); setNotice('') } }
+    try { const chosen = await window.transcriber.choose(); if (chosen) { setStartedAt(null); setEtaDeadline(null); setFile(chosen); setSegments([]); setError(''); setNotice('') } }
     catch (e) { setError(String(e)) }
   }
   async function start() {
+    const now = performance.now()
+    setStartedAt(now); setClockNow(now); setEtaDeadline(null); phase.current = { stage: '', started: now, percent: 0 }
     setBusy(true); setSegments([]); setError(''); setNotice(''); setProgress({ stage: t("Preparing audio"), percent: 0 })
     try {
       const result = await window.transcriber.transcribe(language, device, quality)
       if (result.error) setError(result.error)
       else { setSegments(result.segments || []); setNotice(result.segments?.length ? `Transcription complete using ${result.device?.toUpperCase() || t("CPU")}${result.fallback ? ' (GPU fallback)' : ''}. Review and save your text.` : t("No speech was detected. Try a clearer recording.")) }
-    } catch (e) { setError(String(e)) } finally { setBusy(false) }
+    } catch (e) { setError(String(e)) } finally { setClockNow(performance.now()); setBusy(false); setEtaDeadline(null) }
   }
   async function save(format: string) {
     try { if (await window.transcriber.save({ format, text, segments })) setNotice(uiLanguage === 'fa' ? `فایل ${format.toUpperCase()} ذخیره شد.` : `${format.toUpperCase()} saved on your computer.`) }
@@ -85,10 +108,10 @@ export default function App() {
         </aside>
         <Card className="transcript-card"><CardHeader><CardTitle>{t("Transcript")}</CardTitle>{segments.length ? <CardDescription>{uiLanguage === 'fa' ? 'متن را بررسی و ویرایش کنید، سپس خروجی بگیرید.' : 'Review and edit the text, then export.'}</CardDescription> : null}</CardHeader>
           <CardContent className="transcript-content">
-            {busy ? <div className="working"><AudioLines className="working-icon" aria-hidden="true" /><h2>{t(progress.stage)}</h2><Progress value={progress.percent} className="w-full"><ProgressLabel>{t("Progress")}</ProgressLabel><ProgressValue /></Progress><Button variant="outline" onClick={() => window.transcriber.cancel().catch(e => setError(String(e)))}><Square data-icon="inline-start" />{t("Cancel transcription")}</Button></div>
+            {busy ? <div className="working"><AudioLines className="working-icon" aria-hidden="true" /><h2>{t(progress.stage)}</h2><div className="job-timing"><span>{uiLanguage === 'fa' ? 'زمان سپری‌شده' : 'Elapsed'} <b dir="ltr" data-testid="elapsed">{formatDuration(clockNow - (startedAt ?? clockNow))}</b></span><span>{uiLanguage === 'fa' ? 'زمان باقی‌مانده (تقریبی)' : 'Estimated remaining'} <b dir="ltr" data-testid="remaining">{etaDeadline === null ? (uiLanguage === 'fa' ? 'در حال برآورد…' : 'Estimating…') : etaDeadline <= clockNow && progress.percent < 100 ? (uiLanguage === 'fa' ? 'در حال تکمیل…' : 'Finishing…') : formatDuration(Math.max(0, etaDeadline - clockNow))}</b></span></div><Progress value={progress.percent} className="w-full"><ProgressLabel>{t("Progress")}</ProgressLabel><ProgressValue /></Progress><Button variant="outline" onClick={() => window.transcriber.cancel().catch(e => setError(String(e)))}><Square data-icon="inline-start" />{t("Cancel transcription")}</Button></div>
               : segments.length ? <div className="segment-list">{segments.map((s, i) => <div className="segment" key={`${s.start}-${i}`}><span className="timestamp">{time(s.start)}</span><Textarea aria-label={`${uiLanguage === 'fa' ? 'بخش' : 'Passage'} ${i + 1}`} dir={language === 'en' ? 'ltr' : 'auto'} lang={language === 'fa' ? 'fa' : undefined} value={s.text} onChange={e => setSegments(prev => prev.map((v, n) => n === i ? { ...v, text: e.target.value } : v))} /></div>)}</div>
               : <Empty className="h-full"><EmptyHeader><EmptyMedia variant="icon"><FileText /></EmptyMedia><EmptyTitle>{uiLanguage === 'fa' ? 'متنی برای نمایش نیست' : 'No transcript yet'}</EmptyTitle><EmptyDescription>{uiLanguage === 'fa' ? 'یک فایل انتخاب کنید و «تبدیل به متن» را بزنید.' : 'Choose a file and select Transcribe recording.'}</EmptyDescription></EmptyHeader></Empty>}
-          </CardContent><CardFooter className="flex-wrap justify-between gap-3"><span className="text-sm text-muted-foreground">{segments.length ? `${text.split(/\s+/).filter(Boolean).length} ${uiLanguage === 'fa' ? 'واژه' : 'words'} · ${segments.length} ${uiLanguage === 'fa' ? 'بخش' : 'passages'}` : 'TXT · SRT · VTT'}</span><div className="flex flex-wrap gap-2"><Button variant="ghost" disabled={!segments.length || busy} onClick={async () => { try { await window.transcriber.copy(text); setNotice(t("Text copied.")) } catch (e) { setError(String(e)) } }}><Copy data-icon="inline-start" />{t("Copy")}</Button>{['txt','srt','vtt'].map(format => <Button variant="outline" key={format} disabled={!segments.length || busy} onClick={() => save(format)}><Download data-icon="inline-start" />{format.toUpperCase()}</Button>)}</div></CardFooter></Card>
+          </CardContent><CardFooter className="flex-wrap justify-between gap-3"><span className="text-sm text-muted-foreground">{startedAt !== null && !busy ? `${uiLanguage === 'fa' ? 'زمان پردازش' : 'Processing time'}: ${formatDuration(clockNow - startedAt)}` : segments.length ? `${text.split(/\s+/).filter(Boolean).length} ${uiLanguage === 'fa' ? 'واژه' : 'words'} · ${segments.length} ${uiLanguage === 'fa' ? 'بخش' : 'passages'}` : 'TXT · SRT · VTT'}</span><div className="flex flex-wrap gap-2"><Button variant="ghost" disabled={!segments.length || busy} onClick={async () => { try { await window.transcriber.copy(text); setNotice(t("Text copied.")) } catch (e) { setError(String(e)) } }}><Copy data-icon="inline-start" />{t("Copy")}</Button>{['txt','srt','vtt'].map(format => <Button variant="outline" key={format} disabled={!segments.length || busy} onClick={() => save(format)}><Download data-icon="inline-start" />{format.toUpperCase()}</Button>)}</div></CardFooter></Card>
       </div>
       <div className="statusbar" role="status" aria-live="polite">{notice ? <><Check aria-hidden="true" />{notice}</> : null}</div>
     </main>
