@@ -1,0 +1,17 @@
+node_modules/
+dist/
+release/
+runtime/
+models/
+*.log
+*.tsbuildinfo
+.env*
+recordings/
+transcripts/
+*.wav
+*.mp3
+*.mp4
+*.m4a
+*.mkv
+*.srt
+*.vtt

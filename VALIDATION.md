@@ -1,0 +1,29 @@
+# Validation
+
+Test computer: Windows x64, Intel i5-12400F, 16 GB RAM. CPU-only inference. No NVIDIA CUDA requirement.
+
+- TypeScript + Vite production build: passed.
+- Oxlint: passed with no warnings after excluding installed skill examples and permitting shadcn's generated variant exports.
+- Unit tests: Persian kaf/yeh normalization with half-space preservation; subtitle timestamp boundaries and Unicode; subprocess failure and cancellation.
+- English end-to-end smoke test: official Whisper.cpp JFK sample, decoded locally with the multilingual turbo model.
+- Persian engine smoke test: first WAV in the public Google FLEURS `fa_ir` development archive, `10049006222377318397.wav`. Roughly 9.5 seconds of speech processed in 14.395 seconds including local FFmpeg conversion/model loading. This is one short sample, not a general performance or accuracy benchmark.
+
+Reference:
+
+> بزرگترین مسابقه سال در ماه دسامبر در زمین‌های چوگان «لاس کانیتاس» اتفاق می‌افتد.
+
+Output:
+
+> بزرگترین مسابقه سال در ماه دسام در زمینهای چوگان لاس کانیگاس اتفاق می افتاد.
+
+The test confirms working Persian output and also exposes errors in the month, place name, orthography and verb tense. Review is necessary. No accuracy percentage is claimed.
+
+Engine archive SHA-256 (matches GitHub release asset digest):
+`6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb`
+
+Model SHA-256:
+`394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2`
+
+`npm ci --dry-run --ignore-scripts --offline` confirms the package manifest and lockfile agree. npm 12 failed while refreshing the lockfile for an optional WASM package; npm 11.13 refreshed it successfully. Three low-severity audit reports occur through the development-only shadcn CLI/deepmerge dependency tree. No npm packages are required by the Electron main-process code at runtime; the renderer is bundled.
+
+Desktop integration and packaged application results are appended after running the final build.
