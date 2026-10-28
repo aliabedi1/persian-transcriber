@@ -23,7 +23,7 @@ const os = require('node:os');
     await page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }).selectOption('en');
     assert.equal(await page.evaluate(() => document.documentElement.dir), 'ltr');
     await page.reload();
-    await page.getByRole('heading', { name: 'Give your recordings a voice in text.' }).waitFor();
+    await page.getByRole('heading', { name: 'Audio and video transcription' }).waitFor();
     assert.equal((await page.evaluate(() => window.transcriber.status())).ready, true);
     assert.equal(await page.getByRole('button', { name: 'Transcribe recording', exact: true }).isDisabled(), true);
     await page.evaluate(() => { localStorage.setItem('ava-theme', 'light') });
