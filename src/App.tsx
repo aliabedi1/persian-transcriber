@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AudioLines, FolderOpen, FileAudio, Copy, Download, Check, CircleX, CircleAlert, FileText, Languages, Sun, Moon, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -92,7 +91,7 @@ export default function App() {
     catch (e) { setError(String(e)) }
   }
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-3"><NativeSelect icon={Languages} aria-label="Interface language / زبان برنامه" value={uiLanguage} onChange={e => setUiLanguage(e.target.value)}><NativeSelectOption value="fa">فارسی</NativeSelectOption><NativeSelectOption value="en">English</NativeSelectOption></NativeSelect><NativeSelect icon={theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun} aria-label="Appearance / ظاهر" value={theme} onChange={e => setThemePreference(e.target.value)}><NativeSelectOption value="system">{uiLanguage === 'fa' ? 'پیروی از سیستم' : 'System'}</NativeSelectOption><NativeSelectOption value="light">{uiLanguage === 'fa' ? 'روشن' : 'Light'}</NativeSelectOption><NativeSelectOption value="dark">{uiLanguage === 'fa' ? 'تیره' : 'Dark'}</NativeSelectOption></NativeSelect><Badge variant="secondary">{uiLanguage === 'fa' ? 'آفلاین' : 'Offline'}</Badge></div></header>
+    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-3"><NativeSelect icon={Languages} aria-label="Interface language / زبان برنامه" value={uiLanguage} onChange={e => setUiLanguage(e.target.value)}><NativeSelectOption value="fa">فارسی</NativeSelectOption><NativeSelectOption value="en">English</NativeSelectOption></NativeSelect><NativeSelect icon={theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun} aria-label="Appearance / ظاهر" value={theme} onChange={e => setThemePreference(e.target.value)}><NativeSelectOption value="system">{uiLanguage === 'fa' ? 'پیروی از سیستم' : 'System'}</NativeSelectOption><NativeSelectOption value="light">{uiLanguage === 'fa' ? 'روشن' : 'Light'}</NativeSelectOption><NativeSelectOption value="dark">{uiLanguage === 'fa' ? 'تیره' : 'Dark'}</NativeSelectOption></NativeSelect></div></header>
     <main>
       <h1>{uiLanguage === 'fa' ? 'تبدیل صدا و ویدیو به متن' : 'Audio and video transcription'}</h1>
       {ready === false ? <Alert variant="destructive"><CircleAlert /><AlertTitle>{t("Local engine needs setup")}</AlertTitle><AlertDescription>{t("Run setup.ps1 in the project folder while connected to the internet, then restart Ava. Transcription works offline after setup.")}</AlertDescription></Alert> : null}
