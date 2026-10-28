@@ -14,10 +14,13 @@ for backend in cpu vulkan; do
 done
 cp /usr/bin/ffmpeg runtime/linux/ffmpeg/
 # Bundle FFmpeg's non-glibc dependencies; retain the distro's libc and loader.
-ldd /usr/bin/ffmpeg | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | while read -r lib; do
-  case "$(basename "$lib")" in libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*) continue;; esac
-  cp -L "$lib" runtime/linux/ffmpeg/
+for executable in runtime/linux/cpu/whisper-cli runtime/linux/vulkan/whisper-cli runtime/linux/ffmpeg/ffmpeg; do
+  ldd "$executable" | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | while read -r lib; do
+    case "$(basename "$lib")" in libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*) continue;; esac
+    cp -L "$lib" "$(dirname "$executable")/"
+  done
 done
+
 mkdir -p third-party/linux-package-notices
 for notice in /usr/share/doc/*/copyright; do cp "$notice" "third-party/linux-package-notices/$(basename "$(dirname "$notice")").txt"; done
 cp "$source_dir/LICENSE" third-party/Whisper-Linux-LICENSE.txt
