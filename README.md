@@ -57,3 +57,7 @@ Recordings are read from their original location. Intermediate WAV/JSON files li
 ## Add to Codex desktop
 
 Add this repository folder as a local project using Codex's Projects menu. The git remote is already configured. Local project registration is a desktop UI action and is not performed by setup.ps1.
+
+## Interface language
+
+Persian is the default interface language and uses RTL layout with a bundled Persian font. Select English in the header for LTR. The interface choice is saved locally and is separate from the recording language.

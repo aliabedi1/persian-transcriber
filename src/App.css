@@ -7,3 +7,12 @@ main { max-width:1250px; padding:28px 42px 18px; margin:auto; display:flex; flex
 @media(max-width:920px) { .topbar { padding:18px 24px; }main { padding:24px; }.workspace { grid-template-columns:280px minmax(0,1fr); gap:18px; }h1 { font-size:25px; }.persian-mark { display:none; } }
 @media(max-width:700px) { .workspace { grid-template-columns:1fr; }.topbar { padding:18px; }main { padding:18px; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } }
+
+html[lang="fa"] { --font-sans:'Vazirmatn Variable',Tahoma,sans-serif; }
+[dir="rtl"] .brand strong span { margin-left:0; margin-inline-start:8px; }
+[dir="rtl"] .model-note [data-slot="badge"] { margin-left:0; margin-inline-start:auto; }
+[dir="rtl"] [data-slot="alert"], [dir="rtl"] [data-slot="field-description"] { text-align:right; }
+[dir="rtl"] [data-slot="native-select"] { padding-right:10px; padding-left:32px; }
+[dir="rtl"] [data-slot="native-select-icon"] { right:auto; left:10px; }
+[dir="rtl"] button svg.lucide-arrow-right { transform:scaleX(-1); }
+.timestamp { direction:ltr; unicode-bidi:isolate; }

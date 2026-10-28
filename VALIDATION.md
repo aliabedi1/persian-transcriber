@@ -43,3 +43,5 @@ Visually inspected the actual Electron window and saved a screenshot. The self-c
 ## GPU selection
 
 Vulkan GPU detection identified the AMD Radeon RX 6700 XT. Direct GPU inference of the 9.5-second public Persian WAV completed in about 4.9 seconds of engine time (including model loading). This is a short smoke test, not a general benchmark. Auto-mode desktop integration verified actual GPU activation, transcription, exports and cancellation. Missing-backend detection returns unavailable so CPU remains usable. GPU changes speed, not recognition reliability.
+
+Persian interface: verified default fa/RTL, switching to English/LTR, persistence after reload, and visually inspected the Persian layout.
