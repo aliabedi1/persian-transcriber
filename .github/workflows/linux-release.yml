@@ -14,7 +14,7 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential ffmpeg libvulkan-dev glslc libgtk-3-0 libnss3 libasound2t64 libgbm1 xvfb
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1 xvfb
       - run: npm ci
       - run: bash scripts/setup-linux.sh
       - run: npm run build && npm test && node --test tests/history.test.cjs

@@ -100,7 +100,7 @@ Ava's code is [MIT licensed](LICENSE). It uses [Whisper.cpp](https://github.com/
 Requires Ubuntu 24.04+ x64 and Node.js 24+:
 
 ```bash
-sudo apt install build-essential cmake ffmpeg libvulkan-dev glslc libgtk-3-0 libnss3 libasound2t64 libgbm1
+sudo apt install build-essential cmake ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1
 npm ci
 bash scripts/setup-linux.sh
 npm run build
