@@ -17,7 +17,7 @@ type Segment = { start: number; end: number; text: string }
 declare global { interface Window { transcriber: {
   status: () => Promise<{ ready: boolean; gpu: { available: boolean; name: string } }>;
   choose: () => Promise<{ name: string; size: number } | null>;
-  transcribe: (language: string, device: string) => Promise<{ segments?: Segment[]; error?: string; device?: string; fallback?: boolean }>;
+  transcribe: (language: string, device: string, quality: string) => Promise<{ segments?: Segment[]; error?: string; device?: string; fallback?: boolean }>;
   cancel: () => Promise<void>;
   save: (data: { format: string; text: string; segments: Segment[] }) => Promise<boolean>;
   copy: (text: string) => Promise<void>;
@@ -36,6 +36,7 @@ export default function App() {
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); document.documentElement.style.colorScheme = theme; localStorage.setItem('ava-theme', theme) }, [theme])
   const [ready, setReady] = useState<boolean | null>(null)
   const [file, setFile] = useState<{ name: string; size: number } | null>(null)
+  const [quality, setQuality] = useState(() => localStorage.getItem('ava-quality') || 'accurate')
   const [device, setDevice] = useState(() => localStorage.getItem('ava-device') || 'auto')
   const [gpu, setGpu] = useState({ available: false, name: t("Checking GPU…") })
   const [language, setLanguage] = useState('fa')
@@ -58,7 +59,7 @@ export default function App() {
   async function start() {
     setBusy(true); setSegments([]); setError(''); setNotice(''); setProgress({ stage: t("Preparing audio"), percent: 0 })
     try {
-      const result = await window.transcriber.transcribe(language, device)
+      const result = await window.transcriber.transcribe(language, device, quality)
       if (result.error) setError(result.error)
       else { setSegments(result.segments || []); setNotice(result.segments?.length ? `Transcription complete using ${result.device?.toUpperCase() || t("CPU")}${result.fallback ? ' (GPU fallback)' : ''}. Review and save your text.` : t("No speech was detected. Try a clearer recording.")) }
     } catch (e) { setError(String(e)) } finally { setBusy(false) }
@@ -79,7 +80,7 @@ export default function App() {
             <CardContent className="flex flex-col gap-5">
               <div className="file-well"><FileAudio aria-hidden="true" /><p>{file ? file.name : t("Audio or video")}</p><span>{file ? `${(file.size / 1048576).toFixed(1)} MB` : t("MP3, M4A, MP4, WAV, OGG and more")}</span><Button variant="outline" onClick={choose} disabled={busy}><FolderOpen data-icon="inline-start" />{file ? t("Change file") : t("Choose file")}</Button></div>
               <FieldGroup><Field><FieldLabel htmlFor="language">{t("Spoken language")}</FieldLabel><NativeSelect id="language" value={language} onChange={e => setLanguage(e.target.value)} disabled={busy} className="w-full"><NativeSelectOption value="fa">{t("Persian · فارسی")}</NativeSelectOption><NativeSelectOption value="auto">{t("Detect automatically")}</NativeSelectOption><NativeSelectOption value="en">{t("English")}</NativeSelectOption><NativeSelectOption value="ar">{t("Arabic · العربية")}</NativeSelectOption></NativeSelect></Field></FieldGroup>
-              <FieldGroup><Field><FieldLabel htmlFor="processor">{t("Processor")}</FieldLabel><NativeSelect id="processor" value={device} disabled={busy} onChange={e => { setDevice(e.target.value); localStorage.setItem('ava-device', e.target.value) }} className="w-full"><NativeSelectOption value="auto">{uiLanguage === 'fa' ? 'خودکار' : 'Auto'} · {gpu.available ? 'GPU' : t("CPU")}</NativeSelectOption><NativeSelectOption value="gpu" disabled={!gpu.available}>{t("GPU · Vulkan")}</NativeSelectOption><NativeSelectOption value="cpu">{t("CPU")}</NativeSelectOption></NativeSelect><FieldDescription>{t(gpu.name)}</FieldDescription></Field></FieldGroup>
+              <FieldGroup><Field><FieldLabel htmlFor="quality">{uiLanguage === 'fa' ? 'دقت تبدیل' : 'Accuracy'}</FieldLabel><NativeSelect id="quality" value={quality} disabled={busy} onChange={e => { setQuality(e.target.value); localStorage.setItem('ava-quality', e.target.value) }} className="w-full"><NativeSelectOption value="accurate">{uiLanguage === 'fa' ? 'دقت بیشتر (کندتر)' : 'Higher accuracy (slower)'}</NativeSelectOption><NativeSelectOption value="fast">{uiLanguage === 'fa' ? 'سریع‌تر' : 'Faster'}</NativeSelectOption></NativeSelect></Field></FieldGroup><FieldGroup><Field><FieldLabel htmlFor="processor">{t("Processor")}</FieldLabel><NativeSelect id="processor" value={device} disabled={busy} onChange={e => { setDevice(e.target.value); localStorage.setItem('ava-device', e.target.value) }} className="w-full"><NativeSelectOption value="auto">{uiLanguage === 'fa' ? 'خودکار' : 'Auto'} · {gpu.available ? 'GPU' : t("CPU")}</NativeSelectOption><NativeSelectOption value="gpu" disabled={!gpu.available}>{t("GPU · Vulkan")}</NativeSelectOption><NativeSelectOption value="cpu">{t("CPU")}</NativeSelectOption></NativeSelect><FieldDescription>{t(gpu.name)}</FieldDescription></Field></FieldGroup>
             </CardContent><CardFooter><Button className="w-full" size="lg" onClick={start} disabled={!file || !ready || busy}>{busy ? t("Transcribing…") : t("Transcribe recording")}<ArrowRight data-icon="inline-end" /></Button></CardFooter></Card>
         </aside>
         <Card className="transcript-card"><CardHeader><CardTitle>{t("Transcript")}</CardTitle>{segments.length ? <CardDescription>{uiLanguage === 'fa' ? 'متن را بررسی و ویرایش کنید، سپس خروجی بگیرید.' : 'Review and edit the text, then export.'}</CardDescription> : null}</CardHeader>

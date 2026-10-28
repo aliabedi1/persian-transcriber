@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('transcriber', {
   status: () => ipcRenderer.invoke('status'),
   choose: () => ipcRenderer.invoke('choose'),
-  transcribe: (language, device) => ipcRenderer.invoke('transcribe', language, device),
+  transcribe: (language, device, quality) => ipcRenderer.invoke('transcribe', language, device, quality),
   cancel: () => ipcRenderer.invoke('cancel'),
   save: data => ipcRenderer.invoke('save', data),
   copy: text => ipcRenderer.invoke('copy', text),

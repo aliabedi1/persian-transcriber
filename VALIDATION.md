@@ -45,3 +45,11 @@ Visually inspected the actual Electron window and saved a screenshot. The self-c
 Vulkan GPU detection identified the AMD Radeon RX 6700 XT. Direct GPU inference of the 9.5-second public Persian WAV completed in about 4.9 seconds of engine time (including model loading). This is a short smoke test, not a general benchmark. Auto-mode desktop integration verified actual GPU activation, transcription, exports and cancellation. Missing-backend detection returns unavailable so CPU remains usable. GPU changes speed, not recognition reliability.
 
 Persian interface: verified default fa/RTL, switching to English/LTR, persistence after reload, and visually inspected the Persian layout.
+
+## Quiet-intro repetition fix (1.1.0)
+
+A private local recording reproduced the exact repeated Latin-phrase failure on CPU and GPU. Tests on a 60-second excerpt showed that volume normalization and clearing text context did not resolve it. Silero VAD removed the repeated phrase, while a later spoken excerpt remained transcribable. A 200 ms speech pad improved boundary coverage. A synthetic 60-second silent WAV produced zero passages. The local regression was run before the fix (failed) and after the fix (passed). No private audio or recovered transcript is committed here.
+
+The optional large-v3 Q5_0 model was checksum-verified (d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1). Silero v5.1.2 SHA-256: 29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf. Accuracy still varies; the larger model also misheard words in the test clips. No equivalence to a hosted service is claimed.
+
+Full local-recording rerun with the Faster model and VAD completed in 373.459 seconds. It produced 2,625 passages, reached 4,444.62 seconds in the source timeline, contained no PYM/JBZ phrase, and had a maximum identical-passage streak of two. This checks the reported repetition failure, not word-for-word accuracy. The full run used the initial default speech pad; the final 200 ms pad was separately checked on the reproduction excerpt. The installed desktop app was tested against that excerpt using the Higher accuracy model.

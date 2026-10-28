@@ -1,7 +1,7 @@
 {
   "name": "ava-persian-transcriber",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "npm run build && electron .",
@@ -12,7 +12,8 @@
     "test": "node --test tests/engine.test.cjs",
     "test:desktop": "node tests/desktop.cjs",
     "pack": "npm run build && electron-builder --win --dir",
-    "dist:win": "npm run build && electron-builder --win nsis --x64"
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "test:repetition": "node tests/repetition.cjs"
   },
   "devDependencies": {
     "@base-ui/react": "^1.9.0",

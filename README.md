@@ -4,7 +4,7 @@ A private Windows desktop app for Persian audio/video transcription. Electron + 
 
 ## Install from a release
 
-Download `Ava-Setup-1.0.0-x64.exe` from the GitHub release and open it. The installer installs for the current Windows user, creates desktop and Start menu shortcuts, and includes the model and engine. No terminal, extraction, Node.js, Python, or additional downloads are needed. Remove Ava through Windows Settings > Apps. The build is unsigned, so Windows may display a publisher warning.
+Download `Ava-Setup-1.1.0-x64.exe` from the GitHub release and open it. The installer installs for the current Windows user, creates desktop and Start menu shortcuts, and includes the model and engine. No terminal, extraction, Node.js, Python, or additional downloads are needed. Remove Ava through Windows Settings > Apps. The build is unsigned, so Windows may display a publisher warning.
 
 ## Use
 
@@ -61,3 +61,9 @@ Add this repository folder as a local project using Codex's Projects menu. The g
 ## Interface language
 
 Persian is the default interface language and uses RTL layout with a bundled Persian font. Select English in the header for LTR. The interface choice is saved locally and is separate from the recording language.
+
+## Quiet audio and accuracy
+
+Version 1.1.0 enables local Silero voice activity detection with 200 ms speech padding. This prevents the reproduced repeated-text failure on a quiet introduction while retaining the original recording timestamps. Both CPU and Vulkan use speech detection. The default Higher accuracy setting uses large-v3 Q5_0; Faster uses large-v3-turbo Q5_0. Bigger models are slower and do not guarantee correct wording. Both models and the VAD model are bundled, so no transcription is uploaded.
+
+To run the private-recording regression locally, set `AVA_REPRO_AUDIO` to a short reproduction clip and run `npm run test:repetition`. Set `AVA_REPRO_DEVICE=cpu` to test CPU. No user recording is part of this repository.

@@ -19,6 +19,8 @@ Expand-Archive -LiteralPath $taskEngine -DestinationPath runtime/whisper -Force
 Download-Checked 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin' 'models/ggml-large-v3-turbo-q5_0.bin' '394221709CD5AD1F40C46E6031CA61BCE88931E6E088C188294C6D5A55FFA7E2'
 Download-Checked 'https://github.com/nyancodex/whisper-server-vulkan-windows/releases/download/v0.1.0/whisper-server-bundle.zip' 'runtime/vulkan.zip' '587d04a2805737436d134ab9e02c80437f41a7cb64018a7cd4d8f65a76a56af1'
 Expand-Archive -LiteralPath runtime/vulkan.zip -DestinationPath runtime/vulkan -Force
+Download-Checked 'https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin' 'models/ggml-silero-v5.1.2.bin' '29940D98D42B91FBD05CE489F3ECF7C72F0A42F027E4875919A28FB4C04EA2CF'
+Download-Checked 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin' 'models/ggml-large-v3-q5_0.bin' 'd75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1'
 $taskFfmpeg = Get-Command ffmpeg.exe -ErrorAction SilentlyContinue
 if (!$taskFfmpeg) { throw 'Install FFmpeg with: winget install --id Gyan.FFmpeg.Shared -e. Reopen PowerShell, then run setup.ps1 again.' }
 $taskFfmpegDir = Split-Path $taskFfmpeg.Source
