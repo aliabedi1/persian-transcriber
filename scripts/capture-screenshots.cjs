@@ -1,9 +1,11 @@
 const {_electron}=require('playwright');
 const path=require('node:path');
+const os=require('node:os');
 const fs=require('node:fs/promises');
 (async()=>{
  if(!process.env.AVA_DEMO_AUDIO) throw new Error('Set AVA_DEMO_AUDIO to a public or consented demo recording. Screenshots are published.');
- const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+ const profile=await fs.mkdtemp(path.join(os.tmpdir(),'ava-screenshots-'));
+ const env={...process.env,AVA_TEST_DATA_DIR:path.join(profile,'data'),AVA_TEST_SAVE_DIR:path.join(profile,'exports')};delete env.ELECTRON_RUN_AS_NODE;
  const app=await _electron.launch({args:[path.join(__dirname,'..')],env});
  try {
  const page=await app.firstWindow();
@@ -23,6 +25,9 @@ const fs=require('node:fs/promises');
  await page.evaluate(() => document.fonts.ready);
  await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === '');
  await page.screenshot({path:path.join(__dirname,'../docs/screenshots/persian-dark-transcript.png'),fullPage:true});
- console.log('Saved light workspace and dark transcript screenshots.');
- }finally{await app.close()}
+ await page.getByRole('button',{name:'سوابق',exact:true}).click();
+ await page.locator('.history-day').waitFor();
+ await page.screenshot({path:path.join(__dirname,'../docs/screenshots/history.png'),fullPage:true});
+ console.log('Saved workspace, transcript and history screenshots.');
+ }finally{await app.close();if(path.dirname(path.resolve(profile))===path.resolve(os.tmpdir())&&path.basename(profile).startsWith('ava-screenshots-'))await fs.rm(profile,{recursive:true,force:true})}
 })().catch(e=>{console.error(e);process.exitCode=1});

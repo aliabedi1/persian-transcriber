@@ -15,3 +15,8 @@ transcripts/
 *.mkv
 *.srt
 *.vtt
+
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+**/transcript.txt

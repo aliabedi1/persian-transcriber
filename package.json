@@ -15,7 +15,8 @@
     "dist:win": "npm run build && electron-builder --win nsis --x64",
     "test:repetition": "node tests/repetition.cjs",
     "test:timing": "node --test tests/timing.test.mjs && node tests/timing-desktop.cjs",
-    "test:theme": "node tests/theme.cjs"
+    "test:theme": "node tests/theme.cjs",
+    "test:history": "node --test tests/history.test.cjs && node tests/history-desktop.cjs"
   },
   "devDependencies": {
     "@base-ui/react": "^1.9.0",

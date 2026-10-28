@@ -1,13 +1,20 @@
-const { app, BrowserWindow, ipcMain, dialog, clipboard, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, clipboard, session, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { transcribe, subtitles, detectGpu } = require('./engine.cjs');
+const { createHistoryStore, defaultSaveFolder } = require('./history.cjs');
+let history;
+if (process.env.AVA_TEST_DATA_DIR) {
+  require('node:fs').mkdirSync(process.env.AVA_TEST_DATA_DIR, { recursive: true });
+  app.setPath('userData', process.env.AVA_TEST_DATA_DIR);
+}
 const root = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
 let win, selected, controller;
 let gpuInfo;
 
 async function exists(file) { return fs.access(file).then(() => true, () => false); }
 app.whenReady().then(async () => {
+  history = createHistoryStore(app.getPath('userData'), process.env.AVA_TEST_SAVE_DIR || defaultSaveFolder(key => app.getPath(key)));
   // The finished application has no remote content, telemetry or network access.
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (_details, callback) => callback({ cancel: true }));
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
@@ -18,6 +25,7 @@ app.whenReady().then(async () => {
   win.webContents.on('will-navigate', event => event.preventDefault());
   await win.loadFile(path.join(__dirname, '../dist/index.html'));
 });
+app.on('will-quit', () => history?.close());
 app.on('window-all-closed', () => { controller?.abort(); app.quit(); });
 ipcMain.handle('status', async () => {
   gpuInfo = await detectGpu(root);
@@ -45,12 +53,17 @@ ipcMain.handle('transcribe', async (_event, language, preference = 'auto', quali
   controller = new AbortController();
   try {
     const execute = device => transcribe({ input: selected, language, root, device, quality, signal: controller.signal, onProgress: p => { if (!win.isDestroyed()) win.webContents.send('progress', p); } });
-    try { return { ...await execute(device), device }; }
+    let result;
+    try { result = { ...await execute(device), device }; }
     catch (error) {
       if (preference !== 'auto' || device !== 'gpu' || controller.signal.aborted) throw error;
       win.webContents.send('progress', { stage: 'GPU unavailable. Retrying on CPU', percent: 0 });
-      return { ...await execute('cpu'), device: 'cpu', fallback: true };
+      result = { ...await execute('cpu'), device: 'cpu', fallback: true };
     }
+    try {
+      const saved = await history.add({ sourcePath: selected, language, quality, device: result.device, segments: result.segments });
+      return { ...result, historyId: saved.id, folder: saved.folder, saveWarning: saved.saveError };
+    } catch (error) { return { ...result, saveWarning: error.message }; }
   }
   catch (error) { return { error: controller.signal.aborted ? 'Transcription cancelled.' : error.message }; }
   finally { controller = null; }
@@ -63,4 +76,21 @@ ipcMain.handle('save', async (_event, { format, text, segments }) => {
   if (canceled) return false;
   await fs.writeFile(filePath, '\ufeff' + (format === 'txt' ? text : subtitles(segments, format)), 'utf8');
   return true;
+});
+
+ipcMain.handle('history:list', (_event, limit, offset) => history.list(limit, offset));
+ipcMain.handle('history:get', (_event, id) => { if (controller) throw new Error('Wait for transcription to finish.'); const record = history.get(id); selected = record.sourcePath; return record; });
+ipcMain.handle('history:update', (_event, id, segments) => history.update(id, segments));
+ipcMain.handle('history:retry', (_event, id) => history.retry(id));
+ipcMain.handle('settings:folder', () => history.folder());
+ipcMain.handle('settings:choose-folder', async (_event, locale = 'fa') => {
+  const result = await dialog.showOpenDialog(win, { title: locale === 'en' ? 'Save transcripts to' : 'پوشهٔ ذخیرهٔ متن‌ها', defaultPath: history.folder(), properties: ['openDirectory', 'createDirectory'] });
+  if (!result.canceled) history.setFolder(result.filePaths[0]);
+  return history.folder();
+});
+ipcMain.handle('history:open-folder', async (_event, id) => {
+  const target = id ? history.get(id).folder : history.folder();
+  if (!target) throw new Error('Files have not been saved yet.');
+  await fs.mkdir(target, { recursive: true });
+  const error = await shell.openPath(target); if (error) throw new Error(error);
 });

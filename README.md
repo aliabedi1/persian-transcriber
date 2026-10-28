@@ -20,7 +20,11 @@ The installer is unsigned, so Windows may show a publisher warning. Uninstall th
 4. Click **تبدیل به متن / Transcribe recording**.
 5. Review and edit the passages. Use **Copy**, **TXT**, **SRT**, or **VTT** to save the result.
 
-Save before closing or choosing another file. Ava does not keep a transcript history.
+On the main branch, completed transcriptions are saved automatically as TXT, SRT, and VTT under **Documents/Ava**, in date folders. Use **Change folder** to choose another location. Windows, Linux, and macOS folder locations come from the OS. Changing the folder affects future jobs; existing files stay where they were saved.
+
+The main page lists the latest five transcriptions. Use **All history / سوابق** to browse entries grouped by date and reopen them without the original recording. Edits can be saved with **Save changes / ذخیرهٔ تغییرات**. History and settings are stored in a local SQLite database in the app data folder. If automatic file saving fails, the app keeps the history entry and offers a retry.
+
+The 1.1.0 installer still requires manual export; automatic saving and history are currently on main.
 
 Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video files must contain an audio track.
 
@@ -41,7 +45,11 @@ A transcript in dark mode, with editing and export controls:
 
 ![Persian transcript in dark mode](docs/screenshots/persian-dark-transcript.png)
 
-Screenshots show the main branch. Timers and the System/Light/Dark selector are on main; the 1.1.0 installer predates those changes. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
+History groups saved transcriptions by date:
+
+![Transcription history grouped by date](docs/screenshots/history.png)
+
+Screenshots show the main branch. Timers, the System/Light/Dark selector, automatic saving, and history are on main; the 1.1.0 installer predates those changes. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
 
 ## What to expect
 
@@ -70,6 +78,7 @@ npm run build          # Build the interface
 npm test               # Engine unit tests
 npm run test:desktop   # Desktop checks
 npm run test:timing    # Timer checks
+npm run test:history   # SQLite storage and history checks
 npm run dist:win       # Build the Windows installer
 ```
 

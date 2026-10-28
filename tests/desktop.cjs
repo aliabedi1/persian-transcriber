@@ -4,7 +4,8 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 (async () => {
-  const launchEnv = { ...process.env };
+  const testRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ava-desktop-check-'));
+  const launchEnv = { ...process.env, AVA_TEST_DATA_DIR: path.join(testRoot, 'data'), AVA_TEST_SAVE_DIR: path.join(testRoot, 'exports') };
   delete launchEnv.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch(process.env.AVA_TEST_EXE
     ? { executablePath: process.env.AVA_TEST_EXE, args: [], env: launchEnv }
@@ -48,7 +49,9 @@ const os = require('node:os');
       await page.getByRole('button', { name: 'Transcribe recording', exact: true }).click();
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).waitFor({ timeout: 180000 });
       const detected = await page.evaluate(() => window.transcriber.status());
-      await page.getByRole('status').filter({ hasText: detected.gpu.available ? 'using GPU' : 'using CPU' }).waitFor();
+      const savedRows = await page.evaluate(() => window.transcriber.historyList(1));
+      const stored = await page.evaluate(id => window.transcriber.historyGet(id), savedRows[0].id);
+      assert.equal(stored.device, detected.gpu.available ? 'gpu' : 'cpu');
       console.log('PERSIAN_RESULT', await page.getByRole('textbox', { name: 'Passage 1', exact: true }).inputValue());
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).fill('سلام، این متن ویرایش شده است.');
       await page.getByRole('button', { name: 'Copy', exact: true }).click();
@@ -78,5 +81,6 @@ const os = require('node:os');
   } finally {
     if (page && savedTheme !== undefined) await page.evaluate(value => { if (value === null) localStorage.removeItem('ava-theme'); else localStorage.setItem('ava-theme', value); }, savedTheme).catch(() => {});
     await app.close();
+    if (path.dirname(path.resolve(testRoot)) === path.resolve(os.tmpdir()) && path.basename(testRoot).startsWith('ava-desktop-check-')) await fs.rm(testRoot, { recursive: true, force: true });
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
