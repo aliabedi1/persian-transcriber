@@ -26,4 +26,16 @@ Model SHA-256:
 
 `npm ci --dry-run --ignore-scripts --offline` confirms the package manifest and lockfile agree. npm 12 failed while refreshing the lockfile for an optional WASM package; npm 11.13 refreshed it successfully. Three low-severity audit reports occur through the development-only shadcn CLI/deepmerge dependency tree. No npm packages are required by the Electron main-process code at runtime; the renderer is bundled.
 
-Desktop integration and packaged application results are appended after running the final build.
+Desktop integration passed in both the development Electron launch and the final self-contained `outputs/Ava/Ava.exe` build:
+
+- Model/engine readiness and disabled start before file selection.
+- Renderer Node isolation and blocked outbound fetch.
+- Native selection of an MP4 made from the public Persian test recording; actual FFmpeg extraction and Whisper inference, with no recognition stubs.
+- Editing Persian passages and copying the edited text.
+- TXT, SRT and VTT exports contain the edits.
+- Cancellation is reported and an invalid media file produces a recoverable error.
+- No renderer JavaScript exceptions.
+
+The MP4 smoke test output differs slightly from the lossless WAV test, including an additional initial-letter error. This further supports reviewing transcripts rather than treating the result as exact.
+
+Visually inspected the actual Electron window and saved a screenshot. The self-contained Windows output is approximately 1.2 GB, includes model and native engines, and does not depend on a Python/Node installation. A desktop shortcut points to the prepared output launcher.

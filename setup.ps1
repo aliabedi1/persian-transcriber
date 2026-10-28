@@ -31,7 +31,7 @@ if (!(Test-Path -LiteralPath 'node_modules/electron/dist/electron.exe')) {
     $taskElectronBase = "https://github.com/electron/electron/releases/download/v$taskElectronVersion"
     & curl.exe -sL --fail "$taskElectronBase/SHASUMS256.txt" -o runtime/electron-shasums.txt
     if ($LASTEXITCODE -ne 0) { throw 'Could not download Electron checksums.' }
-    $taskChecksumLine = Get-Content runtime/electron-shasums.txt | Where-Object { $_.EndsWith(" $taskElectronName") }
+    $taskChecksumLine = Get-Content runtime/electron-shasums.txt | Where-Object { ($_ -split '\s+')[1].TrimStart('*') -eq $taskElectronName }
     if (!$taskChecksumLine) { throw 'Electron checksum is missing.' }
     Download-Checked "$taskElectronBase/$taskElectronName" 'runtime/electron.zip' $taskChecksumLine.Split(' ')[0]
     Expand-Archive -LiteralPath runtime/electron.zip -DestinationPath node_modules/electron/dist -Force

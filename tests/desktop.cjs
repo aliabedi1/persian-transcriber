@@ -4,7 +4,11 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 (async () => {
-  const app = await electron.launch({ args: [path.join(__dirname, '..')], env: { ...process.env, ELECTRON_RUN_AS_NODE: '' } });
+  const launchEnv = { ...process.env };
+  delete launchEnv.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch(process.env.AVA_TEST_EXE
+    ? { executablePath: process.env.AVA_TEST_EXE, args: [], env: launchEnv }
+    : { args: [path.join(__dirname, '..')], env: launchEnv });
   try {
     const page = await app.firstWindow();
     const errors = [];
