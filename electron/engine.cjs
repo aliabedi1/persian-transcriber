@@ -3,9 +3,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 
+function runtimePaths(root, platform = process.platform) {
+  return platform === 'win32'
+    ? { cpu: path.join(root, 'runtime/whisper/Release/whisper-cli.exe'), gpu: path.join(root, 'runtime/vulkan/whisper-cli.exe'), ffmpeg: path.join(root, 'runtime/ffmpeg/ffmpeg.exe') }
+    : { cpu: path.join(root, 'runtime/linux/cpu/whisper-cli'), gpu: path.join(root, 'runtime/linux/vulkan/whisper-cli'), ffmpeg: path.join(root, 'runtime/linux/ffmpeg/ffmpeg') };
+}
 function run(exe, args, { signal, onData = () => {} } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(exe, args, { windowsHide: true, signal, shell: false });
+    const child = spawn(exe, args, { windowsHide: true, signal, shell: false, env: { ...process.env, LD_LIBRARY_PATH: [path.dirname(exe), process.env.LD_LIBRARY_PATH].filter(Boolean).join(path.delimiter) } });
     let tail = '', processError;
     for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => {
       const text = chunk.toString('utf8'); tail = (tail + text).slice(-8000); onData(text);
@@ -28,7 +33,7 @@ function subtitles(segments, format) {
 }
 async function detectGpu(root) {
   let log = "";
-  try { await run(path.join(root, "runtime/vulkan/whisper-cli.exe"), ["--help"], { signal: AbortSignal.timeout(10000), onData: text => { log += text; } }); } catch {}
+  try { await run(runtimePaths(root).gpu, ["--help"], { signal: AbortSignal.timeout(10000), onData: text => { log += text; } }); } catch {}
   const match = log.match(/ggml_vulkan:\s*0 = ([^|\r\n]+)/);
   return { available: Boolean(match), name: match ? match[1].trim() : "No compatible Vulkan GPU detected" };
 }
@@ -38,11 +43,11 @@ async function transcribe({ input, language = 'fa', root, signal, onProgress = (
     const audio = path.join(temp, 'audio.wav');
     onProgress({ stage: 'Preparing audio', percent: 0 });
     // Restrict input protocols so a media file cannot fetch remote resources.
-    await run(path.join(root, 'runtime/ffmpeg/ffmpeg.exe'), ['-nostdin', '-v', 'error', '-protocol_whitelist', 'file,pipe', '-i', input, '-vn', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-y', audio], { signal });
+    await run(runtimePaths(root).ffmpeg, ['-nostdin', '-v', 'error', '-protocol_whitelist', 'file,pipe', '-i', input, '-vn', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-y', audio], { signal });
     onProgress({ stage: 'Transcribing locally', percent: 0 });
     const output = path.join(temp, 'transcript');
     let gpuUsed = false;
-    await run(executable || path.join(root, device === "gpu" ? "runtime/vulkan/whisper-cli.exe" : "runtime/whisper/Release/whisper-cli.exe"), [
+    await run(executable || runtimePaths(root)[device === "gpu" ? "gpu" : "cpu"], [
       '-m', path.join(root, quality === 'accurate' ? 'models/ggml-large-v3-q5_0.bin' : 'models/ggml-large-v3-turbo-q5_0.bin'), '-f', audio,
       '--vad', '-vm', path.join(root, 'models/ggml-silero-v5.1.2.bin'), '-vp', '200',
       '-l', language, '-t', String(Math.min(8, os.availableParallelism())),
@@ -59,4 +64,4 @@ async function transcribe({ input, language = 'fa', root, signal, onProgress = (
     await fs.rm(temp, { recursive: true, force: true });
   }
 }
-module.exports = { detectGpu, transcribe, run, normalize, timestamp, subtitles };
+module.exports = { runtimePaths, detectGpu, transcribe, run, normalize, timestamp, subtitles };

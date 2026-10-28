@@ -1,3 +1,4 @@
+const { runtimePaths } = require('./engine.cjs');
 const { app, BrowserWindow, ipcMain, dialog, clipboard, session, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
@@ -18,7 +19,7 @@ app.whenReady().then(async () => {
   // The finished application has no remote content, telemetry or network access.
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (_details, callback) => callback({ cancel: true }));
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-  win = new BrowserWindow({ show: false, width: 1160, height: 850, minWidth: 860, minHeight: 680, title: 'Ava — Persian Transcriber', icon: path.join(root, app.isPackaged ? 'icon.ico' : 'build/icon.ico'), backgroundColor: '#f4f7fa', autoHideMenuBar: true,
+  win = new BrowserWindow({ show: false, width: 1160, height: 850, minWidth: 860, minHeight: 680, title: 'Ava — Persian Transcriber', icon: path.join(root, app.isPackaged ? (process.platform === 'win32' ? 'icon.ico' : 'icon.png') : 'src/assets/ava-icon.png'), backgroundColor: '#f4f7fa', autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -31,7 +32,7 @@ ipcMain.handle('status', async () => {
   gpuInfo = await detectGpu(root);
   const model = path.join(root, 'models/ggml-large-v3-turbo-q5_0.bin');
   const size = await fs.stat(model).then(s => s.size, () => 0);
-  return { gpu: gpuInfo, ready: size === 574041195 && await exists(path.join(root, "models/ggml-silero-v5.1.2.bin")) && await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) && await exists(path.join(root, 'runtime/whisper/Release/whisper-cli.exe')) && await exists(path.join(root, 'runtime/ffmpeg/ffmpeg.exe')), modelSize: size, accurateReady: await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) };
+  return { gpu: gpuInfo, ready: size === 574041195 && await exists(path.join(root, "models/ggml-silero-v5.1.2.bin")) && await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) && await exists(runtimePaths(root).cpu) && await exists(runtimePaths(root).ffmpeg), modelSize: size, accurateReady: await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) };
 });
 ipcMain.handle('choose', async () => {
   if (controller) return null;
