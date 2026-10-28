@@ -29,7 +29,7 @@ Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video f
 | Accuracy | **Higher accuracy** uses large-v3 Q5_0. **Faster** uses large-v3-turbo Q5_0. A larger model is slower and does not always give a better result. |
 | Processor | **Auto** uses a detected Vulkan GPU, with CPU fallback. Select **CPU** or **GPU** to choose manually. GPU mode needs a compatible driver. |
 | Interface | **فارسی** uses RTL; **English** uses LTR. This is separate from the recording language. |
-| Appearance | Light and dark modes are available in the header. |
+| Appearance | System (default), Light, and Dark are available in the header on main. System follows OS changes until you choose an override. |
 
 ## Screenshots
 
@@ -41,7 +41,7 @@ A transcript in dark mode, with editing and export controls:
 
 ![Persian transcript in dark mode](docs/screenshots/persian-dark-transcript.png)
 
-Screenshots show the main branch. Elapsed time and estimated time remaining are on main; the 1.1.0 installer predates those timers. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
+Screenshots show the main branch. Timers and the System/Light/Dark selector are on main; the 1.1.0 installer predates those changes. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
 
 ## What to expect
 

@@ -18,7 +18,7 @@ const fs=require('node:fs/promises');
  await page.getByRole('button',{name:'انتخاب فایل',exact:true}).click();
  await page.getByRole('button',{name:'تبدیل به متن',exact:true}).click();
  await page.getByRole('textbox',{name:'بخش 1',exact:true}).waitFor({timeout:180000});
- await page.getByRole('button',{name:'تغییر به حالت تیره',exact:true}).click();
+ await page.getByRole('combobox',{name:'Appearance / ظاهر'}).selectOption('dark');
  await page.waitForFunction(() => document.documentElement.classList.contains('dark') && document.documentElement.style.colorScheme === 'dark');
  await page.evaluate(() => document.fonts.ready);
  await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === '');

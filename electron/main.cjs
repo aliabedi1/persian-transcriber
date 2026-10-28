@@ -11,8 +11,9 @@ app.whenReady().then(async () => {
   // The finished application has no remote content, telemetry or network access.
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (_details, callback) => callback({ cancel: true }));
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-  win = new BrowserWindow({ width: 1160, height: 850, minWidth: 860, minHeight: 680, title: 'Ava — Persian Transcriber', icon: path.join(root, app.isPackaged ? 'icon.ico' : 'build/icon.ico'), backgroundColor: '#f4f7fa', autoHideMenuBar: true,
+  win = new BrowserWindow({ show: false, width: 1160, height: 850, minWidth: 860, minHeight: 680, title: 'Ava — Persian Transcriber', icon: path.join(root, app.isPackaged ? 'icon.ico' : 'build/icon.ico'), backgroundColor: '#f4f7fa', autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   await win.loadFile(path.join(__dirname, '../dist/index.html'));

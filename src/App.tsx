@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Moon, Sun, AudioLines, FolderOpen, FileAudio, ArrowRight, Copy, Download, Check, Square, CircleAlert, FileText } from 'lucide-react'
+import { AudioLines, FolderOpen, FileAudio, ArrowRight, Copy, Download, Check, Square, CircleAlert, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
@@ -9,6 +9,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { Progress, ProgressLabel, ProgressValue } from '@/components/ui/progress'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Textarea } from '@/components/ui/textarea'
+import { useThemePreference, setThemePreference } from './lib/theme'
 import { formatDuration, estimateRemaining } from './lib/timing'
 import { persian } from './i18n'
 import avaIcon from './assets/ava-icon.png'
@@ -33,8 +34,7 @@ export default function App() {
     document.documentElement.dir = uiLanguage === 'fa' ? 'rtl' : 'ltr'
     localStorage.setItem('ava-ui-language', uiLanguage)
   }, [uiLanguage])
-  const [theme, setTheme] = useState(() => localStorage.getItem('ava-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
-  useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); document.documentElement.style.colorScheme = theme; localStorage.setItem('ava-theme', theme) }, [theme])
+  const theme = useThemePreference()
   const [ready, setReady] = useState<boolean | null>(null)
   const [file, setFile] = useState<{ name: string; size: number } | null>(null)
   const [quality, setQuality] = useState(() => localStorage.getItem('ava-quality') || 'accurate')
@@ -92,7 +92,7 @@ export default function App() {
     catch (e) { setError(String(e)) }
   }
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-3"><NativeSelect aria-label="Interface language / زبان برنامه" value={uiLanguage} onChange={e => setUiLanguage(e.target.value)}><NativeSelectOption value="fa">فارسی</NativeSelectOption><NativeSelectOption value="en">English</NativeSelectOption></NativeSelect><Button variant="outline" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? t("Switch to light mode") : t("Switch to dark mode")}>{theme === 'dark' ? <Sun data-icon="inline-start" /> : <Moon data-icon="inline-start" />}{theme === 'dark' ? t("Light mode") : t("Dark mode")}</Button><Badge variant="secondary">{uiLanguage === 'fa' ? 'آفلاین' : 'Offline'}</Badge></div></header>
+    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-3"><NativeSelect aria-label="Interface language / زبان برنامه" value={uiLanguage} onChange={e => setUiLanguage(e.target.value)}><NativeSelectOption value="fa">فارسی</NativeSelectOption><NativeSelectOption value="en">English</NativeSelectOption></NativeSelect><NativeSelect aria-label="Appearance / ظاهر" value={theme} onChange={e => setThemePreference(e.target.value)}><NativeSelectOption value="system">{uiLanguage === 'fa' ? 'پیروی از سیستم' : 'System'}</NativeSelectOption><NativeSelectOption value="light">{uiLanguage === 'fa' ? 'روشن' : 'Light'}</NativeSelectOption><NativeSelectOption value="dark">{uiLanguage === 'fa' ? 'تیره' : 'Dark'}</NativeSelectOption></NativeSelect><Badge variant="secondary">{uiLanguage === 'fa' ? 'آفلاین' : 'Offline'}</Badge></div></header>
     <main>
       <h1>{uiLanguage === 'fa' ? 'تبدیل صدا و ویدیو به متن' : 'Audio and video transcription'}</h1>
       {ready === false ? <Alert variant="destructive"><CircleAlert /><AlertTitle>{t("Local engine needs setup")}</AlertTitle><AlertDescription>{t("Run setup.ps1 in the project folder while connected to the internet, then restart Ava. Transcription works offline after setup.")}</AlertDescription></Alert> : null}

@@ -9,8 +9,10 @@ const os = require('node:os');
   const app = await electron.launch(process.env.AVA_TEST_EXE
     ? { executablePath: process.env.AVA_TEST_EXE, args: [], env: launchEnv }
     : { args: [path.join(__dirname, '..')], env: launchEnv });
+  let savedTheme, page;
   try {
-    const page = await app.firstWindow();
+    page = await app.firstWindow();
+    savedTheme = await page.evaluate(() => localStorage.getItem('ava-theme'));
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }).waitFor();
@@ -28,11 +30,11 @@ const os = require('node:os');
     assert.equal(await page.getByRole('button', { name: 'Transcribe recording', exact: true }).isDisabled(), true);
     await page.evaluate(() => { localStorage.setItem('ava-theme', 'light') });
     await page.reload();
-    await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+    await page.getByRole('combobox', { name: 'Appearance / ظاهر' }).selectOption('dark');
     assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), true);
     await page.reload();
-    await page.getByRole('button', { name: 'Switch to light mode' }).waitFor();
-    await page.getByRole('button', { name: 'Switch to light mode' }).click();
+    await page.getByRole('combobox', { name: 'Appearance / ظاهر' }).waitFor();
+    await page.getByRole('combobox', { name: 'Appearance / ظاهر' }).selectOption('light');
     assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), false);
     const remote = await page.evaluate(async () => { try { await fetch('https://example.com'); return 'allowed'; } catch { return 'blocked'; } });
     assert.equal(remote, 'blocked');
@@ -73,5 +75,8 @@ const os = require('node:os');
     await page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }).selectOption('fa');
     assert.deepEqual(errors, []);
     console.log('Desktop integration passed: readiness, IPC, renderer isolation, network blocking' + (fixture ? ', Persian inference, editing, clipboard, TXT/SRT/VTT.' : '.'));
-  } finally { await app.close(); }
+  } finally {
+    if (page && savedTheme !== undefined) await page.evaluate(value => { if (value === null) localStorage.removeItem('ava-theme'); else localStorage.setItem('ava-theme', value); }, savedTheme).catch(() => {});
+    await app.close();
+  }
 })().catch(error => { console.error(error); process.exitCode = 1; });
