@@ -16,3 +16,5 @@ html[lang="fa"] { --font-sans:'Vazirmatn Variable',Tahoma,sans-serif; }
 [dir="rtl"] [data-slot="native-select-icon"] { right:auto; left:10px; }
 [dir="rtl"] button svg.lucide-arrow-right { transform:scaleX(-1); }
 .timestamp { direction:ltr; unicode-bidi:isolate; }
+
+img.brand-icon { background:transparent; border-radius:0; object-fit:contain; }

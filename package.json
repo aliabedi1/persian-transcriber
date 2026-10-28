@@ -88,11 +88,17 @@
           "whisper-cli.exe",
           "*.dll"
         ]
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
       }
     ],
     "win": {
       "target": "dir",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": true,
+      "icon": "build/icon.ico",
+      "signExecutable": false
     },
     "electronDist": "./node_modules/electron/dist",
     "nsis": {
@@ -102,7 +108,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Ava",
       "runAfterFinish": true,
-      "artifactName": "Ava-Setup-${version}-${arch}.${ext}"
+      "artifactName": "Ava-Setup-${version}-${arch}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   }
 }
