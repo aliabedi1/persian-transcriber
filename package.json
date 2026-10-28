@@ -11,7 +11,8 @@
     "start": "electron .",
     "test": "node --test tests/engine.test.cjs",
     "test:desktop": "node tests/desktop.cjs",
-    "pack": "npm run build && electron-builder --win --dir"
+    "pack": "npm run build && electron-builder --win --dir",
+    "dist:win": "npm run build && electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "@base-ui/react": "^1.9.0",
@@ -75,12 +76,25 @@
         "filter": [
           "*.bin"
         ]
+      },
+      {
+        "from": "third-party",
+        "to": "third-party"
       }
     ],
     "win": {
       "target": "dir",
       "signAndEditExecutable": false
     },
-    "electronDist": "./node_modules/electron/dist"
+    "electronDist": "./node_modules/electron/dist",
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ava",
+      "runAfterFinish": true,
+      "artifactName": "Ava-Setup-${version}-${arch}.${ext}"
+    }
   }
 }

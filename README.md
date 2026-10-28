@@ -2,6 +2,10 @@
 
 A private Windows desktop app for Persian audio/video transcription. Electron + React + shadcn/ui. No paid API, no account, and no uploads. After the one-time downloads, transcription works offline.
 
+## Install from a release
+
+Download `Ava-Setup-1.0.0-x64.exe` from the GitHub release and open it. The installer installs for the current Windows user, creates desktop and Start menu shortcuts, and includes the model and engine. No terminal, extraction, Node.js, Python, or additional downloads are needed. Remove Ava through Windows Settings > Apps. The build is unsigned, so Windows may display a publisher warning.
+
 ## Use
 
 The prepared Windows folder includes the engine, model, FFmpeg, and application. Open **Ava.exe**. Choose a recording, leave the spoken language on **Persian**, and click **Transcribe recording**. Review passages, edit them, and copy or save TXT, SRT, or VTT. All exports include your edits. Save before closing: transcripts are not automatically retained.
