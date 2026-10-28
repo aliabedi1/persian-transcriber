@@ -1,14 +1,21 @@
 # Ava · آوا
 
-A Windows app that turns Persian audio and video into editable text. Transcription runs on your computer, including when you are offline. There is no account or paid API.
+A Windows and Linux app that turns Persian audio and video into editable text. Transcription runs on your computer, including when you are offline. There is no account or paid API.
 
 ## Install
 
 1. Open the [latest release](https://github.com/aliabedi1/persian-transcriber/releases/latest).
-2. Download **Ava-Setup-1.2.0-x64.exe** and run it.
+2. Download **Ava-Setup-1.3.0-x64.exe** and run it.
 3. Open **Ava** from the desktop or Start menu.
 
-The installer includes the models and tools. No Python, Node.js, or separate model download is needed. The download is about **1.7 GB**; the installed app uses about **2.3 GB**. Allow extra disk space during installation.
+Linux x64 (Ubuntu 24.04+ or compatible):
+
+- **Ava-1.3.0-linux-x64.deb**: open with your software installer, or run `sudo apt install ./Ava-1.3.0-linux-x64.deb`. Ava appears in the applications menu.
+- **Ava-1.3.0-linux-x64.AppImage**: portable. Run `chmod +x Ava-1.3.0-linux-x64.AppImage`, then open it. Without FUSE, launch with `--appimage-extract-and-run`.
+
+Linux GPU mode requires your GPU vendor's Vulkan driver. Auto falls back to CPU if GPU startup fails. Release checks run on CPU; Linux GPU hardware has not been tested.
+
+The installers include the models and tools. No Python, Node.js, or separate model download is needed. The download is about **1.7 GB**; the installed app uses about **2.3 GB**. Allow extra disk space during installation.
 
 The installer is unsigned, so Windows may show a publisher warning. Uninstall through **Windows Settings → Apps**.
 
@@ -87,3 +94,18 @@ The app uses Electron, React, and shadcn/ui. Models and native binaries are down
 ## Credits and license
 
 Ava's code is [MIT licensed](LICENSE). It uses [Whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Whisper models](https://huggingface.co/ggerganov/whisper.cpp), [Silero VAD](https://github.com/snakers4/silero-vad), [FFmpeg](https://ffmpeg.org/), and a [community Windows Vulkan build](https://github.com/nyancodex/whisper-server-vulkan-windows). Third-party software retains its own license; notices are in [third-party](third-party/).
+
+### Linux development
+
+Requires Ubuntu 24.04+ x64 and Node.js 24+:
+
+```bash
+sudo apt install build-essential cmake ffmpeg libvulkan-dev glslc libgtk-3-0 libnss3 libasound2t64 libgbm1
+npm ci
+bash scripts/setup-linux.sh
+npm run build
+npm start
+npm run dist:linux
+```
+
+Setup compiles CPU and Vulkan engines from pinned Whisper.cpp source and verifies model checksums. macOS and Linux ARM packages are not provided.

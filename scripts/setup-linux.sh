@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-# Ubuntu 22.04+ x64. Install build dependencies before running (see README).
+# Ubuntu 24.04+ x64. Install build dependencies before running (see README).
 mkdir -p runtime/linux/{cpu,vulkan,ffmpeg} models
 source_dir=$(mktemp -d)
 trap 'rm -rf "$source_dir"' EXIT
