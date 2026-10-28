@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AudioLines, ShieldCheck, FolderOpen, FileAudio, ArrowRight, Copy, Download, Check, Square, CircleAlert, FileText } from 'lucide-react'
+import { Moon, Sun, AudioLines, ShieldCheck, FolderOpen, FileAudio, ArrowRight, Copy, Download, Check, Square, CircleAlert, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
@@ -24,6 +24,8 @@ declare global { interface Window { transcriber: {
 } } }
 const time = (ms: number) => `${Math.floor(ms / 60000).toString().padStart(2, '0')}:${Math.floor(ms / 1000 % 60).toString().padStart(2, '0')}`
 export default function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('ava-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
+  useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); document.documentElement.style.colorScheme = theme; localStorage.setItem('ava-theme', theme) }, [theme])
   const [ready, setReady] = useState<boolean | null>(null)
   const [file, setFile] = useState<{ name: string; size: number } | null>(null)
   const [language, setLanguage] = useState('fa')
@@ -56,7 +58,7 @@ export default function App() {
     catch (e) { setError(String(e)) }
   }
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><div className="brand-icon"><AudioLines aria-hidden="true" /></div><div><strong>Ava <span lang="fa">آوا</span></strong><p>Persian transcriber</p></div></div><Badge variant="secondary"><ShieldCheck data-icon="inline-start" /> Offline workspace</Badge></header>
+    <header className="topbar"><div className="brand"><div className="brand-icon"><AudioLines aria-hidden="true" /></div><div><strong>Ava <span lang="fa">آوا</span></strong><p>Persian transcriber</p></div></div><div className="flex items-center gap-3"><Button variant="outline" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? <Sun data-icon="inline-start" /> : <Moon data-icon="inline-start" />}{theme === 'dark' ? 'Light mode' : 'Dark mode'}</Button><Badge variant="secondary"><ShieldCheck data-icon="inline-start" /> Offline workspace</Badge></div></header>
     <main>
       <div className="intro"><div><p className="eyebrow">YOUR WORDS, ON YOUR COMPUTER</p><h1>Give your recordings a voice in text.</h1><p>Persian audio and video → editable text. Private by design.</p></div><div className="persian-mark" lang="fa" aria-hidden="true">آوا</div></div>
       {ready === false ? <Alert variant="destructive"><CircleAlert /><AlertTitle>Local engine needs setup</AlertTitle><AlertDescription>Run setup.ps1 in the project folder while connected to the internet, then restart Ava. Transcription works offline after setup.</AlertDescription></Alert> : null}
