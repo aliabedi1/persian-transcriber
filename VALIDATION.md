@@ -57,3 +57,9 @@ Full local-recording rerun with the Faster model and VAD completed in 373.459 se
 ## Automatic saving and history (main branch)
 
 SQLite persistence, Unicode TXT/SRT/VTT exports, same-name job separation, edited text persistence, pagination and custom save-folder settings passed storage tests. A failed file destination retained the database entry and recovered after changing folders and retrying. OS default-folder construction was checked using Windows and POSIX path implementations. Desktop integration with an isolated test profile checked the latest-five list, two date groups, opening/editing a record, changing folders, automatic export after real local inference, and persistence after restarting the installed app. Screenshots use only a public sample and a disposable profile; no user recordings/history are published.
+
+## Linux release (1.3.0)
+
+Ubuntu 24.04 x64 release job [40774799462](https://github.com/aliabedi1/persian-transcriber/actions/runs/40774799462) passed. CPU and Vulkan engines were compiled from pinned Whisper.cpp source; non-glibc dependencies and checksum-verified models are bundled. Built AppImage and Debian packages. The packaged executable passed real Persian inference using the public FLEURS fixture, editing, clipboard, TXT/SRT/VTT export, cancellation, invalid-file handling, renderer isolation and network blocking. Engine and SQLite storage tests passed on Linux. Windows packaged integration also passed with real Persian audio.
+
+Linux requires an AVX2-capable x64 CPU and Ubuntu 24.04 or a compatible system. Physical Linux GPU hardware was not tested; Vulkan requires a compatible vendor driver. macOS and Linux ARM installers are not provided. The release tests launch the packaged executable from linux-unpacked, rather than installing the Debian package or mounting the AppImage.

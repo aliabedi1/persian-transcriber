@@ -8,14 +8,14 @@ A Windows and Linux app that turns Persian audio and video into editable text. T
 2. Download **Ava-Setup-1.3.0-x64.exe** and run it.
 3. Open **Ava** from the desktop or Start menu.
 
-Linux x64 (Ubuntu 24.04+ or compatible):
+Linux x64 (Ubuntu 24.04+ or compatible, with an AVX2-capable CPU):
 
-- **Ava-1.3.0-linux-x64.deb**: open with your software installer, or run `sudo apt install ./Ava-1.3.0-linux-x64.deb`. Ava appears in the applications menu.
-- **Ava-1.3.0-linux-x64.AppImage**: portable. Run `chmod +x Ava-1.3.0-linux-x64.AppImage`, then open it. Without FUSE, launch with `--appimage-extract-and-run`.
+- **Ava-1.3.0-linux-amd64.deb**: open with your software installer, or run `sudo apt install ./Ava-1.3.0-linux-amd64.deb`. Ava appears in the applications menu.
+- **Ava-1.3.0-linux-x86_64.AppImage**: portable. Run `chmod +x Ava-1.3.0-linux-x86_64.AppImage`, then open it. Without FUSE, launch with `--appimage-extract-and-run`.
 
 Linux GPU mode requires your GPU vendor's Vulkan driver. Auto falls back to CPU if GPU startup fails. Release checks run on CPU; Linux GPU hardware has not been tested.
 
-The installers include the models and tools. No Python, Node.js, or separate model download is needed. The download is about **1.7 GB**; the installed app uses about **2.3 GB**. Allow extra disk space during installation.
+The installers include the models and tools. No Python, Node.js, or separate model download is needed. The Windows download is about **1.7 GB**; the installed Windows app uses about **2.3 GB**. Allow extra disk space during installation.
 
 The installer is unsigned, so Windows may show a publisher warning. Uninstall through **Windows Settings → Apps**.
 
@@ -30,8 +30,6 @@ The installer is unsigned, so Windows may show a publisher warning. Uninstall th
 Completed transcriptions are saved automatically as TXT, SRT, and VTT under **Documents/Ava**, in date folders. Use **Change folder** to choose another location. Windows, Linux, and macOS folder locations come from the OS. Changing the folder affects future jobs; existing files stay where they were saved.
 
 The main page lists the latest five transcriptions. Use **All history / سوابق** to browse entries grouped by date and reopen them without the original recording. Edits can be saved with **Save changes / ذخیرهٔ تغییرات**. History and settings are stored in a local SQLite database in the app data folder. If automatic file saving fails, the app keeps the history entry and offers a retry.
-
-Version 1.2.0 includes automatic saving, SQLite history, timers, and the updated interface.
 
 Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video files must contain an audio track.
 
