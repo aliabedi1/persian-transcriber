@@ -15,15 +15,15 @@ Linux x64 (Ubuntu 24.04+ or compatible, with an AVX2-capable CPU):
 
 Linux GPU mode requires your GPU vendor's Vulkan driver. Auto falls back to CPU if GPU startup fails. Release checks run on CPU; Linux GPU hardware has not been tested.
 
-The installers include the models and tools. No Python, Node.js, or separate model download is needed. The Windows download is about **1.7 GB**; the installed Windows app uses about **2.3 GB**. Allow extra disk space during installation.
+Installers include the native tools but no transcription models. Installation, setup, and first launch do not download models. Open **Settings → Models** while online, explicitly download a model, then select **Use model**. No Python, Node.js, account, or API key is needed for installed apps. After download, transcription works offline. Allow about 549 MB for Turbo Q5 or 1,032 MB for Large v3 Q5, including the shared speech detector.
 
 The installer is unsigned, so Windows may show a publisher warning. Uninstall through **Windows Settings → Apps**.
 
 ## Use
 
-1. Click **انتخاب فایل / Choose file** and select an audio or video file.
+1. Download and select a model in **تنظیمات ← مدل‌ها / Settings → Models**, then click **انتخاب فایل / Choose file** and select an audio or video file.
 2. Set **زبان گفتار / Spoken language** to the language in the recording. Persian is selected by default.
-3. Choose an accuracy setting and processor, or keep the defaults below.
+3. Choose a downloaded model in settings and a processor, or keep your saved selection. Model changes apply to the next job; an active transcription keeps its original model.
 4. Click **تبدیل به متن / Transcribe recording**.
 5. Review and edit the passages. Use **Copy**, **TXT**, **SRT**, or **VTT** to save the result.
 
@@ -35,7 +35,7 @@ Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video f
 
 | Setting | Options |
 | --- | --- |
-| Accuracy | **Higher accuracy** uses large-v3 Q5_0. **Faster** uses large-v3-turbo Q5_0. A larger model is slower and does not always give a better result. |
+| Models | Download one or multiple models and select **Use model**. Large v3 Turbo Q5 is faster; Large v3 Q5 is larger and slower and does not always give a better result. Downloads and selection persist across restarts. |
 | Processor | **Auto** uses a detected Vulkan GPU, with CPU fallback. Select **CPU** or **GPU** to choose manually. GPU mode needs a compatible driver. |
 | Interface | **فارسی** uses RTL; **English** uses LTR. This is separate from the recording language. |
 | Appearance | System (default), Light, and Dark are available in the header. System follows OS changes until you choose an override. |
@@ -67,7 +67,7 @@ See [VALIDATION.md](VALIDATION.md) for tests and known accuracy limits.
 
 ## Run from source
 
-Requires Windows x64, Node.js, and FFmpeg. Internet is needed for the initial dependency and model downloads.
+Requires Windows x64, Node.js, and FFmpeg. Internet is needed for initial dependencies and for model downloads explicitly started in settings.
 
 ```powershell
 git clone https://github.com/aliabedi1/persian-transcriber.git
@@ -81,13 +81,14 @@ npm start
 ```powershell
 npm run build          # Build the interface
 npm test               # Engine unit tests
+npm run test:models    # Model store tests + real downloads and Windows/Linux desktop inference
 npm run test:desktop   # Desktop checks
 npm run test:timing    # Timer checks
 npm run test:history   # SQLite storage and history checks
 npm run dist:win       # Build the Windows installer
 ```
 
-The app uses Electron, React, and shadcn/ui. Models and native binaries are downloaded by setup and excluded from Git.
+The app uses Electron, React, and shadcn/ui. Setup downloads native binaries only. Model downloads are managed in settings and stored under the OS app data folder (on Windows, `%APPDATA%/ava-persian-transcriber/models`). Validated downloads remain available offline; a missing or invalid file disables that model. Retry failed/interrupted downloads in settings: verified files are reused, incomplete files restart from the beginning. Existing development `models/` files and models in older installers are not used automatically. See [the developer catalog guide](docs/MODELS.md) to add models and sources.
 
 ## Credits and license
 
@@ -106,4 +107,4 @@ npm start
 npm run dist:linux
 ```
 
-Setup compiles CPU and Vulkan engines from pinned Whisper.cpp source and verifies model checksums. macOS and Linux ARM packages are not provided.
+Setup compiles CPU and Vulkan engines from pinned Whisper.cpp source. Models are optional downloads in settings; each file is checked against the catalog size and SHA-256 before use. macOS and Linux ARM packages are not provided.

@@ -37,7 +37,7 @@ async function detectGpu(root) {
   const match = log.match(/ggml_vulkan:\s*0 = ([^|\r\n]+)/);
   return { available: Boolean(match), name: match ? match[1].trim() : "No compatible Vulkan GPU detected" };
 }
-async function transcribe({ input, language = 'fa', root, signal, onProgress = () => {}, executable, device = "cpu", quality = "fast" }) {
+async function transcribe({ input, language = 'fa', root, signal, onProgress = () => {}, executable, device = "cpu", quality = "fast", modelPath, vadPath }) {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'ava-transcribe-'));
   try {
     const audio = path.join(temp, 'audio.wav');
@@ -48,8 +48,8 @@ async function transcribe({ input, language = 'fa', root, signal, onProgress = (
     const output = path.join(temp, 'transcript');
     let gpuUsed = false;
     await run(executable || runtimePaths(root)[device === "gpu" ? "gpu" : "cpu"], [
-      '-m', path.join(root, quality === 'accurate' ? 'models/ggml-large-v3-q5_0.bin' : 'models/ggml-large-v3-turbo-q5_0.bin'), '-f', audio,
-      '--vad', '-vm', path.join(root, 'models/ggml-silero-v5.1.2.bin'), '-vp', '200',
+      '-m', modelPath || path.join(root, quality === 'accurate' ? 'models/ggml-large-v3-q5_0.bin' : 'models/ggml-large-v3-turbo-q5_0.bin'), '-f', audio,
+      '--vad', '-vm', vadPath || path.join(root, 'models/ggml-silero-v5.1.2.bin'), '-vp', '200',
       '-l', language, '-t', String(Math.min(8, os.availableParallelism())),
       '-oj', '-of', output, '-pp', '-sns', ...(device === 'cpu' ? ['-ng'] : []),
     ], { signal, onData: text => {

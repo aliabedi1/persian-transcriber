@@ -7,6 +7,14 @@ contextBridge.exposeInMainWorld('transcriber', {
   saveFolder: () => ipcRenderer.invoke('settings:folder'),
   chooseSaveFolder: locale => ipcRenderer.invoke('settings:choose-folder', locale),
   openFolder: id => ipcRenderer.invoke('history:open-folder', id),
+  models: () => ipcRenderer.invoke('models:list'),
+  downloadModel: id => ipcRenderer.invoke('models:download', id),
+  selectModel: id => ipcRenderer.invoke('models:select', id),
+  onModelsChanged: callback => {
+    const listener = () => callback();
+    ipcRenderer.on('models:changed', listener);
+    return () => ipcRenderer.removeListener('models:changed', listener);
+  },
   status: () => ipcRenderer.invoke('status'),
   choose: () => ipcRenderer.invoke('choose'),
   transcribe: (language, device, quality) => ipcRenderer.invoke('transcribe', language, device, quality),

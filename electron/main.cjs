@@ -4,7 +4,8 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const { transcribe, subtitles, detectGpu } = require('./engine.cjs');
 const { createHistoryStore, defaultSaveFolder } = require('./history.cjs');
-let history;
+const { createModelStore } = require('./models.cjs');
+let history, models;
 if (process.env.AVA_TEST_DATA_DIR) {
   require('node:fs').mkdirSync(process.env.AVA_TEST_DATA_DIR, { recursive: true });
   app.setPath('userData', process.env.AVA_TEST_DATA_DIR);
@@ -16,7 +17,8 @@ let gpuInfo;
 async function exists(file) { return fs.access(file).then(() => true, () => false); }
 app.whenReady().then(async () => {
   history = createHistoryStore(app.getPath('userData'), process.env.AVA_TEST_SAVE_DIR || defaultSaveFolder(key => app.getPath(key)));
-  // The finished application has no remote content, telemetry or network access.
+  models = createModelStore(app.getPath('userData'), { onChange: () => { if (win && !win.isDestroyed()) win.webContents.send('models:changed'); } });
+  // Renderer traffic stays blocked. Only explicit main-process catalog downloads use the network.
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (_details, callback) => callback({ cancel: true }));
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   win = new BrowserWindow({ show: false, width: 1160, height: 850, minWidth: 860, minHeight: 680, title: 'Ava — Persian Transcriber', icon: path.join(root, app.isPackaged ? (process.platform === 'win32' ? 'icon.ico' : 'icon.png') : 'src/assets/ava-icon.png'), backgroundColor: '#f4f7fa', autoHideMenuBar: true,
@@ -30,9 +32,9 @@ app.on('will-quit', () => history?.close());
 app.on('window-all-closed', () => { controller?.abort(); app.quit(); });
 ipcMain.handle('status', async () => {
   gpuInfo = await detectGpu(root);
-  const model = path.join(root, 'models/ggml-large-v3-turbo-q5_0.bin');
-  const size = await fs.stat(model).then(s => s.size, () => 0);
-  return { gpu: gpuInfo, ready: size === 574041195 && await exists(path.join(root, "models/ggml-silero-v5.1.2.bin")) && await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) && await exists(runtimePaths(root).cpu) && await exists(runtimePaths(root).ffmpeg), modelSize: size, accurateReady: await exists(path.join(root, "models/ggml-large-v3-q5_0.bin")) };
+  const engineReady = await exists(runtimePaths(root).cpu) && await exists(runtimePaths(root).ffmpeg);
+  const modelReady = await models.resolveSelected().then(() => true, () => false);
+  return { gpu: gpuInfo, engineReady, ready: engineReady && modelReady };
 });
 ipcMain.handle('choose', async () => {
   if (controller) return null;
@@ -42,18 +44,19 @@ ipcMain.handle('choose', async () => {
   const stat = await fs.stat(selected);
   return { name: path.basename(selected), size: stat.size };
 });
-ipcMain.handle('transcribe', async (_event, language, preference = 'auto', quality = 'accurate') => {
+ipcMain.handle('transcribe', async (_event, language, preference = 'auto') => {
   if (controller) return { error: 'A transcription is already running.' };
   if (!selected) return { error: 'Choose a file first.' };
   if (!['fa','auto','en','ar'].includes(language)) return { error: 'Unsupported language.' };
-  if (!['fast','accurate'].includes(quality)) return { error: 'Invalid accuracy choice.' };
   if (!['auto','cpu','gpu'].includes(preference)) return { error: 'Invalid processor choice.' };
-  gpuInfo = gpuInfo || await detectGpu(root);
-  if (preference === 'gpu' && !gpuInfo.available) return { error: 'No compatible Vulkan GPU is available. Choose CPU or Auto.' };
-  const device = preference === 'cpu' ? 'cpu' : gpuInfo.available ? 'gpu' : 'cpu';
   controller = new AbortController();
+  let model;
+  try { model = await models.resolveSelected(); } catch (error) { controller = null; return { error: error.message }; }
+  gpuInfo = gpuInfo || await detectGpu(root);
+  if (preference === 'gpu' && !gpuInfo.available) { controller = null; return { error: 'No compatible Vulkan GPU is available. Choose CPU or Auto.' }; }
+  const device = preference === 'cpu' ? 'cpu' : gpuInfo.available ? 'gpu' : 'cpu';
   try {
-    const execute = device => transcribe({ input: selected, language, root, device, quality, signal: controller.signal, onProgress: p => { if (!win.isDestroyed()) win.webContents.send('progress', p); } });
+    const execute = device => transcribe({ input: selected, language, root, device, ...model, signal: controller.signal, onProgress: p => { if (!win.isDestroyed()) win.webContents.send('progress', p); } });
     let result;
     try { result = { ...await execute(device), device }; }
     catch (error) {
@@ -62,7 +65,7 @@ ipcMain.handle('transcribe', async (_event, language, preference = 'auto', quali
       result = { ...await execute('cpu'), device: 'cpu', fallback: true };
     }
     try {
-      const saved = await history.add({ sourcePath: selected, language, quality, device: result.device, segments: result.segments });
+      const saved = await history.add({ sourcePath: selected, language, quality: model.id, device: result.device, segments: result.segments });
       return { ...result, historyId: saved.id, folder: saved.folder, saveWarning: saved.saveError };
     } catch (error) { return { ...result, saveWarning: error.message }; }
   }
@@ -95,3 +98,7 @@ ipcMain.handle('history:open-folder', async (_event, id) => {
   await fs.mkdir(target, { recursive: true });
   const error = await shell.openPath(target); if (error) throw new Error(error);
 });
+
+ipcMain.handle('models:list', () => models.list());
+ipcMain.handle('models:download', (_event, id) => models.download(id));
+ipcMain.handle('models:select', (_event, id) => models.select(id));

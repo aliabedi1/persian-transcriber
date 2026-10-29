@@ -90,3 +90,9 @@ img.brand-icon { background:transparent; border-radius:0; object-fit:contain; }
 [data-tour-step="0"] [data-tour="dashboard-start"] { outline:2px solid var(--primary); outline-offset:5px; }
 [dir="rtl"] button svg.lucide-arrow-right { transform:scaleX(-1); }
 @media(max-width:700px) { .dashboard-start { grid-template-columns:minmax(0,1fr); gap:24px; }.dashboard-details { padding:0 4px; }.dashboard-welcome [data-slot="card-title"] { font-size:24px; } }
+
+.model-required-alert { grid-template-columns:20px minmax(0,1fr) auto; align-items:center; gap:16px; padding:20px; text-align:start; }
+.model-required-alert>svg { grid-row:1; width:20px; height:20px; align-self:start; margin-top:2px; transform:none; color:var(--primary); }
+.model-required-copy { min-width:0; display:flex; flex-direction:column; gap:6px; }
+.model-required-alert>[data-slot="button"] { white-space:normal; height:auto; min-height:38px; text-align:center; }
+@media(max-width:700px) { .model-required-alert { grid-template-columns:20px minmax(0,1fr); gap:16px 12px; padding:16px; }.model-required-alert>[data-slot="button"] { grid-column:2; justify-self:start; max-width:100%; } }

@@ -1,5 +1,20 @@
 # Validation
 
+## Optional models — issue #3 (2026-10-29)
+
+Implemented and tested locally on the developer's Windows x64 PC with isolated app copies/profiles. These results describe the current working tree, not a published release.
+
+- Fresh profile: no model files downloaded at installation/setup/first launch; startup creates only the empty model storage folder. Missing-model guidance links to Settings → Models. The renderer still blocks outbound fetch.
+- Explicit downloads: actually downloaded and SHA-256/size-verified Large v3 Turbo Q5, Large v3 Q5 and the shared Silero VAD through the app. Both production models transcribed the public `tests/fixtures/persian-fleurs.wav` fixture with the real CPU engine (one passage each; no inference stub). This checks operation, not recognition accuracy.
+- Switching: each model was selected and used for inference. Selecting Turbo while a real Large v3 job was active left that job's recorded model as Large v3. The next job used the selected model. Separate UI checks clicked both Use model buttons and checked backend selection/readiness and persistence after reload.
+- Restart/offline: closed and relaunched with the same temporary profile. Selection and all downloaded files persisted. Both production models transcribed again with main-process fetch forced to fail and the browser context offline. No OS network-adapter settings were changed.
+- Failure/retry: injected a disconnected-network error in the main-process fetch used by the downloader. The settings row showed an actionable error and Retry download. Restored real fetch and successfully downloaded from the configured source. Store tests also cover HTTP failures, interrupted streams, short/corrupt downloads, a crash-left partial file, missing files, retry, mirrors and shared concurrent files.
+- Catalog extension: added a temporary `developer-tiny` entry and its file metadata/source only to an isolated catalog. It appeared in settings and actually downloaded `ggml-tiny.bin` from its configured Hugging Face URL with SHA-256 `be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`. No settings UI change was needed. This test entry is not in the production catalog.
+- UI: visually inspected English and Persian settings, including a 390 px-wide layout; selection controls, status, sizes and recovery copy are visible without horizontal overflow. No renderer exceptions in the full model desktop suite.
+- Build/packaging: TypeScript/Vite build, lint, 15 engine/model/history/platform/timing unit tests, dashboard, tour, history and custom-select desktop checks passed. `npm run pack` produced `release/win-unpacked/Ava.exe`; verified its resources contain no `.bin` model files. Fresh-profile IPC/readiness/isolation checks also passed against the packaged executable.
+
+Reproduce the complete real-download suite with `npm run test:models` after building the UI and preparing native tools. It downloads roughly 1.7 GB into disposable storage, performs native CPU inference, and removes its temporary app/profile afterward. The developer's normal profile, recordings and existing source models were preserved. Linux runtime verification and building/running the NSIS installer were not performed for this change; Windows packaging and both OS packaging/setup exclusions were checked. Developer catalog instructions are in [docs/MODELS.md](docs/MODELS.md).
+
 Test computer: Windows x64, Intel i5-12400F, 16 GB RAM. CPU-only inference. No NVIDIA CUDA requirement.
 
 - TypeScript + Vite production build: passed.

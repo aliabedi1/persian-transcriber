@@ -1,4 +1,3 @@
-const { chooseSelect } = require('./select-helper.cjs');
 const { _electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -29,7 +28,8 @@ const { createHistoryStore } = require('../electron/history.cjs');
   let app = await launch();
   try {
     let page = await app.firstWindow();
-    await chooseSelect(page, page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }), 'en');
+    await page.evaluate(() => { localStorage.setItem('ava-ui-language', 'en'); localStorage.setItem('ava-tour-seen-v1', 'true'); });
+    await page.reload();
     await page.waitForFunction(() => document.querySelectorAll('.history-row').length === 5);
     await page.getByRole('button', { name: 'All history', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.history-row').length === 7);
@@ -51,7 +51,11 @@ const { createHistoryStore } = require('../electron/history.cjs');
     if (process.env.AVA_TEST_AUDIO) {
       await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, process.env.AVA_TEST_AUDIO);
       await page.getByRole('button', { name: 'Change file', exact: true }).click();
-      await chooseSelect(page, page.locator('#quality'), 'fast');
+      await page.evaluate(async () => {
+        const result = await window.transcriber.downloadModel('large-v3-turbo-q5');
+        if (result.models.find(m => m.id === 'large-v3-turbo-q5').status !== 'ready') throw new Error('Test model download failed.');
+        await window.transcriber.selectModel('large-v3-turbo-q5');
+      });
       await page.getByRole('button', { name: 'Transcribe recording', exact: true }).click();
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).waitFor({ timeout: 180000 });
       const saved = (await page.evaluate(() => window.transcriber.historyList(50))).find(r => r.name === path.basename(process.env.AVA_TEST_AUDIO));

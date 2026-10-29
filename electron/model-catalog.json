@@ -1,0 +1,44 @@
+{
+  "files": {
+    "silero-v5": {
+      "name": "ggml-silero-v5.1.2.bin",
+      "urls": ["https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin"],
+      "size": 885098,
+      "sha256": "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf"
+    },
+    "large-v3-turbo-q5": {
+      "name": "ggml-large-v3-turbo-q5_0.bin",
+      "urls": ["https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"],
+      "size": 574041195,
+      "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2"
+    },
+    "large-v3-q5": {
+      "name": "ggml-large-v3-q5_0.bin",
+      "urls": ["https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin"],
+      "size": 1081140203,
+      "sha256": "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1"
+    }
+  },
+  "models": [
+    {
+      "id": "large-v3-turbo-q5",
+      "name": "Whisper Large v3 Turbo · Q5",
+      "description": "Multilingual model, including Persian. Faster processing and a smaller download.",
+      "descriptionFa": "مدل چندزبانه با پشتیبانی از فارسی؛ پردازش سریع‌تر و دانلود کوچک‌تر.",
+      "engine": "whisper.cpp-ggml-v1",
+      "compatibility": "Multilingual GGML Q5_0; whisper.cpp with Silero v5 VAD support (bundled CPU/Vulkan engines).",
+      "modelFile": "large-v3-turbo-q5",
+      "vadFile": "silero-v5"
+    },
+    {
+      "id": "large-v3-q5",
+      "name": "Whisper Large v3 · Q5",
+      "description": "Full multilingual model. Slower processing; may improve recognition on some recordings.",
+      "descriptionFa": "مدل کامل چندزبانه؛ پردازش کندتر، با امکان تشخیص بهتر در بعضی فایل‌ها.",
+      "engine": "whisper.cpp-ggml-v1",
+      "compatibility": "Multilingual GGML Q5_0; whisper.cpp with Silero v5 VAD support (bundled CPU/Vulkan engines).",
+      "modelFile": "large-v3-q5",
+      "vadFile": "silero-v5"
+    }
+  ]
+}

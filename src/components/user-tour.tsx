@@ -23,8 +23,8 @@ const steps = [
     fa: ['متن را بررسی و نگهداری کنید', 'متن را ویرایش کنید و «ذخیرهٔ تغییرات» را بزنید. با «کپی» متن را بردارید یا خروجی TXT برای متن و SRT یا VTT برای زیرنویس بگیرید. نتیجه در سوابق می‌ماند و بعداً قابل باز کردن است.'],
   },
   {
-    en: ['Make Ava yours', 'Settings lets you change the interface language, appearance, accuracy, processor and automatic save folder. Use Back to return to your recording. You can replay this tour from User guide anytime.'],
-    fa: ['آوا را تنظیم کنید', 'در تنظیمات، زبان برنامه، ظاهر، دقت تبدیل، پردازنده و پوشهٔ ذخیرهٔ خودکار را تغییر دهید. با «بازگشت» به فایل خود برگردید. «راهنمای استفاده» این راهنما را دوباره باز می‌کند.'],
+    en: ['Make Ava yours', 'Settings lets you change the interface language, appearance, downloaded model, processor and automatic save folder. Use Back to return to your recording. You can replay this tour from User guide anytime.'],
+    fa: ['آوا را تنظیم کنید', 'در تنظیمات، زبان برنامه، ظاهر، مدل دانلودشده، پردازنده و پوشهٔ ذخیرهٔ خودکار را تغییر دهید. با «بازگشت» به فایل خود برگردید. «راهنمای استفاده» این راهنما را دوباره باز می‌کند.'],
   },
 ] as const
 

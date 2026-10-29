@@ -8,6 +8,8 @@ export const persian: Record<string, string> = {
   "Dark mode": "حالت تیره",
   "Switch to light mode": "تغییر به حالت روشن",
   "Switch to dark mode": "تغییر به حالت تیره",
+  "Choose and download a model in Settings → Models, then select Use model.": "در تنظیمات، از بخش مدل‌ها یک مدل دانلود کنید و «استفاده از مدل» را بزنید.",
+  "Run setup.ps1 (Windows) or scripts/setup-linux.sh (Linux) to install the native tools, then restart Ava.": "برای نصب ابزارهای پردازش، setup.ps1 در ویندوز یا scripts/setup-linux.sh در لینوکس را اجرا و آوا را دوباره باز کنید.",
   "Local engine needs setup": "موتور پردازش آماده نیست",
   "Run setup.ps1 in the project folder while connected to the internet, then restart Ava. Transcription works offline after setup.": "فایل نصب را دوباره اجرا کنید. در نسخهٔ توسعه، setup.ps1 را اجرا کرده و برنامه را باز کنید.",
   "Could not complete the action": "انجام عملیات ممکن نشد",
