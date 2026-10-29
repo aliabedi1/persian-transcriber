@@ -1,3 +1,4 @@
+const { chooseSelect } = require('../tests/select-helper.cjs');
 const {_electron}=require('playwright');
 const path=require('node:path');
 const os=require('node:os');
@@ -9,7 +10,7 @@ const fs=require('node:fs/promises');
  const app=await _electron.launch({args:[path.join(__dirname,'..')],env});
  try {
  const page=await app.firstWindow();
- await page.getByRole('combobox',{name:'Interface language / زبان برنامه'}).waitFor();
+ await page.getByRole('button', { name: 'Settings / تنظیمات' }).waitFor();
  await page.evaluate(()=>{localStorage.setItem('ava-ui-language','fa');localStorage.setItem('ava-theme','light')});
  await page.reload();
  await page.getByRole('heading',{name:'تبدیل صدا و ویدیو به متن'}).waitFor();
@@ -20,7 +21,7 @@ const fs=require('node:fs/promises');
  await page.getByRole('button',{name:'انتخاب فایل',exact:true}).click();
  await page.getByRole('button',{name:'تبدیل به متن',exact:true}).click();
  await page.getByRole('textbox',{name:'بخش 1',exact:true}).waitFor({timeout:180000});
- await page.getByRole('combobox',{name:'Appearance / ظاهر'}).selectOption('dark');
+ await chooseSelect(page, page.getByRole('combobox',{name:'Appearance / ظاهر'}), 'dark');
  await page.waitForFunction(() => document.documentElement.classList.contains('dark') && document.documentElement.style.colorScheme === 'dark');
  await page.evaluate(() => document.fonts.ready);
  await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === '');

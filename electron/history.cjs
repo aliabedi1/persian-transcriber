@@ -43,16 +43,41 @@ function createHistoryStore(directory, defaultFolder) {
   };
   async function exportRecord(id) {
     const record = get(id);
-    const date = new Date(record.createdAt);
-    const destination = record.folder || path.join(folder(), localDay(date), `${safeName(record.name)}-${id}`);
+    let destination = record.folder;
     try {
-      await fs.mkdir(destination, { recursive: true });
+      if (destination) {
+        await fs.mkdir(destination, { recursive: true });
+      } else {
+        const base = folder();
+        const name = safeName(record.name);
+        await fs.mkdir(base, { recursive: true });
+        for (let number = 1; ; number++) {
+          const candidate = path.join(base, number === 1 ? name : `${name} (${number})`);
+          try {
+            await fs.mkdir(candidate);
+            destination = candidate;
+            break;
+          } catch (error) {
+            if (error.code !== 'EEXIST') throw error;
+          }
+        }
+        // Keep edits in this folder even if an export only partially succeeds.
+        db.prepare('UPDATE transcriptions SET folder=? WHERE id=?').run(destination, id);
+      }
       for (const format of ['txt', 'srt', 'vtt']) {
         const file = path.join(destination, `transcript.${format}`);
         const data = format === 'txt' ? record.text : subtitles(record.segments, format);
         await fs.writeFile(`${file}.tmp`, '\ufeff' + data, 'utf8');
         await fs.rename(`${file}.tmp`, file);
       }
+      const dataFile = path.join(destination, 'transcript.json');
+      await fs.writeFile(`${dataFile}.tmp`, JSON.stringify({
+        id: record.id, createdAt: record.createdAt, name: record.name,
+        sourcePath: record.sourcePath, language: record.language,
+        quality: record.quality, device: record.device,
+        text: record.text, segments: record.segments,
+      }, null, 2), 'utf8');
+      await fs.rename(`${dataFile}.tmp`, dataFile);
       db.prepare('UPDATE transcriptions SET folder=?, save_error=NULL WHERE id=?').run(destination, id);
       return get(id);
     } catch (error) {

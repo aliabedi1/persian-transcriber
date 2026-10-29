@@ -1,3 +1,4 @@
+const { chooseSelect } = require('./select-helper.cjs');
 const { _electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -28,7 +29,7 @@ const { createHistoryStore } = require('../electron/history.cjs');
   let app = await launch();
   try {
     let page = await app.firstWindow();
-    await page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }).selectOption('en');
+    await chooseSelect(page, page.getByRole('combobox', { name: 'Interface language / زبان برنامه' }), 'en');
     await page.waitForFunction(() => document.querySelectorAll('.history-row').length === 5);
     await page.getByRole('button', { name: 'All history', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.history-row').length === 7);
@@ -42,13 +43,15 @@ const { createHistoryStore } = require('../electron/history.cjs');
     assert.ok(edited);
     assert.match(await fs.readFile(path.join(edited.folder, 'transcript.txt'), 'utf8'), /ویرایش ذخیره‌شده/);
     await app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, custom);
+    await page.getByRole('button', { name: 'Settings / تنظیمات' }).click();
     await page.getByRole('button', { name: 'Change folder', exact: true }).click();
-    await page.getByText(custom, { exact: true }).waitFor();
+    await page.waitForFunction(value => document.querySelector('#save-folder-path')?.value === value, custom);
+    await page.getByRole('button', { name: 'Settings / تنظیمات' }).click();
     let expectedCount = 7;
     if (process.env.AVA_TEST_AUDIO) {
       await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, process.env.AVA_TEST_AUDIO);
       await page.getByRole('button', { name: 'Change file', exact: true }).click();
-      await page.locator('#quality').selectOption('fast');
+      await chooseSelect(page, page.locator('#quality'), 'fast');
       await page.getByRole('button', { name: 'Transcribe recording', exact: true }).click();
       await page.getByRole('textbox', { name: 'Passage 1', exact: true }).waitFor({ timeout: 180000 });
       const saved = (await page.evaluate(() => window.transcriber.historyList(50))).find(r => r.name === path.basename(process.env.AVA_TEST_AUDIO));
@@ -60,7 +63,9 @@ const { createHistoryStore } = require('../electron/history.cjs');
     await app.close();
     app = await launch();
     page = await app.firstWindow();
-    await page.getByText(custom, { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Settings / تنظیمات' }).click();
+    await page.waitForFunction(value => document.querySelector('#save-folder-path')?.value === value, custom);
+    await page.getByRole('button', { name: 'Settings / تنظیمات' }).click();
     await page.getByRole('button', { name: 'All history', exact: true }).click();
     await page.waitForFunction(count => document.querySelectorAll('.history-row').length === count, expectedCount);
     assert.equal(await page.locator('.history-day').count(), 2);
@@ -72,3 +77,4 @@ const { createHistoryStore } = require('../electron/history.cjs');
     if (path.dirname(path.resolve(root)) === path.resolve(os.tmpdir()) && path.basename(root).startsWith('ava-history-desktop-')) await fs.rm(root, { recursive: true, force: true });
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

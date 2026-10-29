@@ -13,11 +13,15 @@ test('history persists, exports Unicode, updates edits and keeps same-name jobs 
   const input = { sourcePath: path.join(root, 'درس.mp3'), language: 'fa', quality: 'fast', device: 'cpu', segments: [{ start: 0, end: 1500, text: 'سلام دنیا' }] };
   const first = await store.add(input);
   const second = await store.add(input);
-  assert.notEqual(first.folder, second.folder);
+  assert.equal(first.folder, path.join(defaults, 'درس'));
+  assert.equal(second.folder, path.join(defaults, 'درس (2)'));
   assert.equal(first.saveError, null);
   for (const format of ['txt', 'srt', 'vtt']) assert.match(await fs.readFile(path.join(first.folder, `transcript.${format}`), 'utf8'), /سلام دنیا/);
+  const metadata = JSON.parse(await fs.readFile(path.join(first.folder, 'transcript.json'), 'utf8'));
+  assert.deepEqual(metadata.segments, input.segments);
   await store.update(first.id, [{ start: 0, end: 1500, text: 'متن ویرایش‌شده' }]);
   assert.match(await fs.readFile(path.join(first.folder, 'transcript.srt'), 'utf8'), /متن ویرایش‌شده/);
+  assert.equal(store.get(first.id).folder, first.folder);
   const custom = path.join(root, 'custom-folder');
   store.setFolder(custom);
   for (let i = 0; i < 5; i++) await store.add(input);
@@ -55,4 +59,20 @@ test('default save folders use OS locations on Windows and Linux with fallback',
  assert.equal(defaultSaveFolder(() => 'D:\\Users\\Demo\\Documents', path.win32), 'D:\\Users\\Demo\\Documents\\Ava');
  assert.equal(defaultSaveFolder(() => '/home/demo/Documents', path.posix), '/home/demo/Documents/Ava');
  assert.equal(defaultSaveFolder(key => { if(key === 'documents') throw new Error('missing'); return '/home/demo/Downloads'; }, path.posix), '/home/demo/Downloads/Ava');
+});
+
+
+test('folder allocation skips existing files and folders and handles concurrent same-name exports', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ava-folder-names-'));
+  const output = path.join(root, 'exports');
+  await fs.mkdir(path.join(output, 'voice'), { recursive: true });
+  await fs.writeFile(path.join(output, 'voice (2)'), 'keep');
+  const store = createHistoryStore(path.join(root, 'data'), output);
+  try {
+    const input = { sourcePath: path.join(root, 'voice.wav'), language: 'en', quality: 'fast', device: 'cpu', segments: [] };
+    const records = await Promise.all([store.add(input), store.add(input)]);
+    assert.deepEqual(records.map(r => path.basename(r.folder)).sort(), ['voice (3)', 'voice (4)']);
+    assert.ok(records.every(r => r.saveError === null));
+    assert.equal(await fs.readFile(path.join(output, 'voice (2)'), 'utf8'), 'keep');
+  } finally { store.close(); }
 });
