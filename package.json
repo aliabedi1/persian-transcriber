@@ -1,7 +1,7 @@
 {
   "name": "ava-persian-transcriber",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "dev": "npm run build && electron .",
@@ -11,6 +11,8 @@
     "start": "electron .",
     "test": "node --test tests/engine.test.cjs",
     "test:desktop": "node tests/desktop.cjs",
+    "test:recording": "node --test tests/recordings.test.cjs && node tests/recording-desktop.cjs",
+    "test:live": "node --test tests/live.test.cjs tests/system-audio.test.cjs tests/pcm-capture.test.cjs && node tests/live-desktop.cjs microphone && node tests/live-desktop.cjs system && node tests/live-desktop.cjs both",
     "pack": "npm run build && electron-builder --win --dir",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
     "test:repetition": "node tests/repetition.cjs",
@@ -74,6 +76,8 @@
           "to": "runtime/whisper/Release",
           "filter": [
             "whisper-cli.exe",
+            "whisper-server.exe",
+            "whisper-vad-speech-segments.exe",
             "*.dll"
           ]
         },
@@ -90,6 +94,7 @@
           "to": "runtime/vulkan",
           "filter": [
             "whisper-cli.exe",
+            "whisper-server.exe",
             "*.dll"
           ]
         },

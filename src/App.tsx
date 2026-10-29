@@ -3,6 +3,9 @@ import { Cpu, Zap, ScanLine, AudioLines, FolderOpen, FileAudio, Copy, Download, 
 import { ModelsSettings } from './components/models-settings'
 import type { ModelList } from './components/models-settings'
 import { Dashboard } from './components/dashboard'
+import { MicrophoneRecorder } from './components/microphone-recorder'
+import { LiveTranscription } from './components/live-transcription'
+import type { LiveResult, LiveSegment } from './components/live-transcription'
 import { UserTour } from './components/user-tour'
 import { TranscriptionHistory } from './components/transcription-history'
 import type { HistorySummary } from './components/transcription-history'
@@ -37,6 +40,15 @@ declare global { interface Window { transcriber: {
   openFolder: (id?: string) => Promise<void>;
   status: () => Promise<{ ready: boolean; engineReady: boolean; gpu: { available: boolean; name: string } }>;
   choose: () => Promise<{ name: string; size: number } | null>;
+  recording: (bytes: ArrayBuffer, mimeType: string) => Promise<{ name: string; size: number }>;
+  liveStart: (options: { language: string; device: string; source: string; locale: string }) => Promise<{ device: string }>;
+  liveCapabilities: () => Promise<{ platform: string; system: boolean; reason?: string }>;
+  liveSystemStart: () => Promise<void>;
+  liveSystemStop: () => Promise<void>;
+  onSystemAudio: (callback: (bytes: ArrayBuffer) => void) => () => void;
+  liveAudio: (bytes: ArrayBuffer) => Promise<void>;
+  liveStop: (options?: { discard: boolean }) => Promise<LiveResult>;
+  onLiveUpdate: (callback: (data: { segments?: LiveSegment[]; bufferedMs?: number; error?: string }) => void) => () => void;
   transcribe: (language: string, device: string, quality?: string) => Promise<{ segments?: Segment[]; error?: string; device?: string; fallback?: boolean; historyId?: string; folder?: string; saveWarning?: string }>;
   cancel: () => Promise<void>;
   save: (data: { format: string; text: string; segments: Segment[] }) => Promise<boolean>;
@@ -65,17 +77,20 @@ export default function App() {
   const [etaDeadline, setEtaDeadline] = useState<number | null>(null)
   const phase = useRef({ stage: '', started: 0, percent: 0 })
   const [busy, setBusy] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [liveActive, setLiveActive] = useState(false)
   const [progress, setProgress] = useState({ stage: t("Starting"), percent: 0 })
   const [error, setError] = useState(() => window.transcriber ? '' : 'Open Ava using the desktop launcher.')
   const [view, setView] = useState<'home' | 'main' | 'history' | 'settings'>('home')
   const returnView = useRef<'home' | 'main' | 'history'>('home')
   function openSettings() {
+    if (recording) return
     if (view === 'settings') setView(returnView.current)
     else { returnView.current = view; setView('settings') }
   }
   const [tourStep, setTourStep] = useState<number | null>(() => localStorage.getItem('ava-tour-seen-v1') === 'true' ? null : 0)
   const guideButton = useRef<HTMLButtonElement>(null)
-  function navigateTour(step: number) { if (step === 5) returnView.current = 'main'; setView(step === 0 ? 'home' : step === 5 ? 'settings' : 'main'); setTourStep(step) }
+  function navigateTour(step: number) { if (recording) return; if (step === 5) returnView.current = 'main'; setView(step === 0 ? 'home' : step === 5 ? 'settings' : 'main'); setTourStep(step) }
   function closeTour() { localStorage.setItem('ava-tour-seen-v1', 'true'); setTourStep(null); guideButton.current?.focus() }
   const [recent, setRecent] = useState<HistorySummary[]>([])
   const [historyItems, setHistoryItems] = useState<HistorySummary[]>([])
@@ -127,6 +142,19 @@ export default function App() {
     try { const chosen = await window.transcriber.choose(); if (chosen) { setHistoryId(null); setDirty(false); setSaveWarning(''); setStartedAt(null); setEtaDeadline(null); setFile(chosen); setSegments([]); setError(''); setNotice('') } }
     catch (e) { setError(String(e)) }
   }
+  function recorded(chosen: { name: string; size: number }) {
+    setHistoryId(null); setDirty(false); setSaveWarning(''); setStartedAt(null); setEtaDeadline(null)
+    setFile(chosen); setSegments([]); setError(''); setNotice('')
+  }
+  function beginLive() {
+    setHistoryId(null); setDirty(false); setSaveWarning(''); setStartedAt(null); setEtaDeadline(null)
+    setFile(null); setSegments([]); setError(''); setNotice('')
+  }
+  async function completeLive(result: LiveResult) {
+    setSegments(result.segments); setHistoryId(result.historyId || null); setSaveWarning(result.saveWarning || '')
+    if (result.error) setError(result.error)
+    try { setRecent(await window.transcriber.historyList(5)) } catch (error) { setError(String(error)) }
+  }
   async function start() {
     const now = performance.now()
     setStartedAt(now); setClockNow(now); setEtaDeadline(null); phase.current = { stage: '', started: now, percent: 0 }
@@ -147,7 +175,7 @@ export default function App() {
   async function openHistory(id: string) {
     try {
       const record = await window.transcriber.historyGet(id)
-      setHistoryId(record.id); setFile({ name: record.name, size: 0 }); setLanguage(record.language); setSegments(record.segments); setDirty(false); setSaveWarning(record.saveError || ''); setError(''); setNotice(''); setStartedAt(null); setView('main')
+      setHistoryId(record.id); setFile(record.sourcePath.startsWith('ava-live:') ? null : { name: record.name, size: 0 }); setLanguage(record.language); setSegments(record.segments); setDirty(false); setSaveWarning(record.saveError || ''); setError(''); setNotice(''); setStartedAt(null); setView('main')
     } catch (e) { setError(String(e)) }
   }
   async function saveEdits(retry = false) {
@@ -166,12 +194,12 @@ export default function App() {
     catch (e) { setError(String(e)) }
   }
   return <DirectionProvider direction={uiLanguage === 'fa' ? 'rtl' : 'ltr'}><div className="app-shell" data-tour-step={tourStep ?? undefined}>
-    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-2"><Button variant="ghost" aria-current={view === 'home' ? 'page' : undefined} onClick={() => setView('home')}><House aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'خانه' : 'Home'}</Button><Button ref={guideButton} variant="ghost" onClick={() => navigateTour(0)}><CircleHelp aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'راهنمای استفاده' : 'User guide'}</Button><Button variant="outline" aria-label="Settings / تنظیمات" aria-current={view === 'settings' ? 'page' : undefined} onClick={openSettings}><Settings aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'تنظیمات' : 'Settings'}</Button></div></header>
+    <header className="topbar"><div className="brand"><img className="brand-icon" src={avaIcon} alt="" /><div><strong>Ava <span lang="fa">آوا</span></strong></div></div><div className="flex items-center gap-2"><Button variant="ghost" disabled={recording} aria-current={view === 'home' ? 'page' : undefined} onClick={() => setView('home')}><House aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'خانه' : 'Home'}</Button><Button ref={guideButton} disabled={recording} variant="ghost" onClick={() => navigateTour(0)}><CircleHelp aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'راهنمای استفاده' : 'User guide'}</Button><Button variant="outline" disabled={recording} aria-label="Settings / تنظیمات" aria-current={view === 'settings' ? 'page' : undefined} onClick={openSettings}><Settings aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'تنظیمات' : 'Settings'}</Button></div></header>
     <main>
-      <div className="page-heading"><h1>{view === 'home' ? (uiLanguage === 'fa' ? 'خانه' : 'Home') : view === 'settings' ? (uiLanguage === 'fa' ? 'تنظیمات برنامه' : 'App settings') : view === 'history' ? (uiLanguage === 'fa' ? 'سوابق تبدیل' : 'Transcription history') : (uiLanguage === 'fa' ? 'تبدیل صدا و ویدیو به متن' : 'Audio and video transcription')}</h1>{view === 'main' ? <Button variant="outline" disabled={busy || saving} onClick={showHistory}><History aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'سوابق' : 'All history'}</Button> : view !== 'home' ? <Button variant="outline" onClick={() => setView(returnView.current)}><ArrowLeft aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'بازگشت' : 'Back'}</Button> : null}</div>
+      <div className="page-heading"><h1>{view === 'home' ? (uiLanguage === 'fa' ? 'خانه' : 'Home') : view === 'settings' ? (uiLanguage === 'fa' ? 'تنظیمات برنامه' : 'App settings') : view === 'history' ? (uiLanguage === 'fa' ? 'سوابق تبدیل' : 'Transcription history') : (uiLanguage === 'fa' ? 'تبدیل صدا و ویدیو به متن' : 'Audio and video transcription')}</h1>{view === 'main' ? <Button variant="outline" disabled={busy || saving || recording} onClick={showHistory}><History aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'سوابق' : 'All history'}</Button> : view !== 'home' ? <Button variant="outline" onClick={() => setView(returnView.current)}><ArrowLeft aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'بازگشت' : 'Back'}</Button> : null}</div>
       {tourStep !== null ? <UserTour step={tourStep} locale={uiLanguage} onStep={navigateTour} onClose={closeTour} /> : null}
       {engineReady === false ? <Alert variant="destructive"><CircleAlert /><AlertTitle>{t("Local engine needs setup")}</AlertTitle><AlertDescription>{t("Run setup.ps1 (Windows) or scripts/setup-linux.sh (Linux) to install the native tools, then restart Ava.")}</AlertDescription></Alert> : null}
-      {modelList && !modelList.models.some(model => model.id === modelList.selectedId && model.status === 'ready') ? <Alert className="model-required-alert"><Download aria-hidden="true" /><div className="model-required-copy"><AlertTitle>{uiLanguage === 'fa' ? 'یک مدل برای تبدیل لازم است' : 'A model is required'}</AlertTitle><AlertDescription>{uiLanguage === 'fa' ? 'در تنظیمات، از بخش مدل‌ها یک مدل دانلود و انتخاب کنید.' : 'Open Settings → Models to download and select a model.'}</AlertDescription></div><Button onClick={() => { if (view !== 'settings') { returnView.current = view; setView('settings') }; requestAnimationFrame(() => document.getElementById('models-settings')?.scrollIntoView({ block: 'center' })) }}>{uiLanguage === 'fa' ? 'انتخاب و دانلود مدل' : 'Choose and download a model'}</Button></Alert> : null}
+      {modelList && !modelList.models.some(model => model.id === modelList.selectedId && model.status === 'ready') ? <Alert className="model-required-alert"><Download aria-hidden="true" /><div className="model-required-copy"><AlertTitle>{uiLanguage === 'fa' ? 'یک مدل برای تبدیل لازم است' : 'A model is required'}</AlertTitle><AlertDescription>{uiLanguage === 'fa' ? 'در تنظیمات، از بخش مدل‌ها یک مدل دانلود و انتخاب کنید.' : 'Open Settings → Models to download and select a model.'}</AlertDescription></div><Button disabled={recording} onClick={() => { if (view !== 'settings') { returnView.current = view; setView('settings') }; requestAnimationFrame(() => document.getElementById('models-settings')?.scrollIntoView({ block: 'center' })) }}>{uiLanguage === 'fa' ? 'انتخاب و دانلود مدل' : 'Choose and download a model'}</Button></Alert> : null}
       {error ? <Alert variant="destructive"><CircleAlert /><AlertTitle>{t("Could not complete the action")}</AlertTitle><AlertDescription className="error-detail">{t(error)}</AlertDescription></Alert> : null}
       {saveWarning ? <Alert variant="destructive"><CircleAlert /><AlertTitle>{uiLanguage === 'fa' ? 'ذخیرهٔ خودکار فایل کامل نشد' : 'Automatic file saving did not finish'}</AlertTitle><AlertDescription>{uiLanguage === 'fa' ? 'متن را از دست ندهید؛ پوشه را تغییر دهید و دوباره تلاش کنید.' : 'Keep the transcript open, choose another save folder, then retry.'}<p className="error-detail">{saveWarning}</p>{historyId ? <Button variant="outline" disabled={saving} onClick={() => saveEdits(true)}><RotateCcw aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'تلاش دوباره' : 'Retry saving'}</Button> : null}</AlertDescription></Alert> : null}
       {view === 'home' ? <Dashboard locale={uiLanguage} ready={ready} busy={busy} saving={saving} fileName={file?.name} saveFolder={saveFolder} recent={recent} onStart={() => setView('main')} onHistory={showHistory} onSettings={openSettings} onGuide={() => navigateTour(0)} onOpenFolder={() => revealFolder()} onOpen={openHistory} /> : view === 'settings' ? <div className="settings-page">
@@ -182,25 +210,27 @@ export default function App() {
         </FieldGroup></CardContent></Card>
         <Card><CardHeader><CardTitle>{uiLanguage === 'fa' ? 'تبدیل به متن' : 'Transcription'}</CardTitle></CardHeader><CardContent className="flex flex-col gap-5"><FieldGroup><Field><FieldLabel htmlFor="processor">{t("Processor")}</FieldLabel><AppSelect id="processor" icon={Cpu} value={device} disabled={busy} onValueChange={value => { setDevice(value); localStorage.setItem('ava-device', value) }} className="w-full" options={[{ value: 'auto', label: uiLanguage === 'fa' ? 'خودکار' : 'Auto', description: gpu.available ? 'GPU · Vulkan' : t('CPU'), icon: ScanLine }, { value: 'gpu', label: t('GPU · Vulkan'), description: !gpu.available ? (uiLanguage === 'fa' ? 'در این دستگاه در دسترس نیست' : 'Unavailable on this device') : gpu.name, disabled: !gpu.available, icon: Zap }, { value: 'cpu', label: t('CPU'), icon: Cpu }]} /><FieldDescription>{t(gpu.name)}</FieldDescription></Field></FieldGroup></CardContent></Card>
         <Card><CardHeader><CardTitle>{uiLanguage === 'fa' ? 'ذخیرهٔ فایل‌ها' : 'File saving'}</CardTitle></CardHeader><CardContent><div className="save-folder"><label htmlFor="save-folder-path">{uiLanguage === 'fa' ? 'ذخیرهٔ خودکار TXT، SRT و VTT در:' : 'Automatically save TXT, SRT and VTT to:'}</label><input id="save-folder-path" className="save-folder-path" dir="ltr" readOnly value={saveFolder} title={saveFolder} /><Button variant="outline" onClick={changeFolder}><FolderCog aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'تغییر پوشه' : 'Change folder'}</Button><Button variant="ghost" onClick={() => revealFolder()}><FolderOpen aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'باز کردن پوشه' : 'Open folder'}</Button></div></CardContent></Card>
-      </div> : view === 'history' ? <TranscriptionHistory full items={historyItems} locale={uiLanguage} onOpen={openHistory} onMore={hasMore ? loadMore : undefined} disabled={busy || saving} /> : <>
+      </div> : view === 'history' ? <TranscriptionHistory full items={historyItems} locale={uiLanguage} onOpen={openHistory} onMore={hasMore ? loadMore : undefined} disabled={busy || saving || recording} /> : <>
 
       <div className="workspace">
         <aside className="flex flex-col gap-5">
           <Card><CardHeader><CardTitle>{t("Your recording")}</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <div className="file-well" data-tour="file"><FileAudio aria-hidden="true" /><p>{file ? file.name : t("Audio or video")}</p><span>{file ? `${(file.size / 1048576).toFixed(1)} MB` : t("MP3, M4A, MP4, WAV, OGG and more")}</span><Button variant="outline" onClick={choose} disabled={busy}><FolderOpen aria-hidden="true" data-icon="inline-start" />{file ? t("Change file") : t("Choose file")}</Button></div>
-              <FieldGroup data-tour="language"><Field><FieldLabel htmlFor="language">{t("Spoken language")}</FieldLabel><AppSelect id="language" icon={Languages} value={language} onValueChange={setLanguage} disabled={busy} className="w-full" options={[{ value: 'fa', label: t('Persian · فارسی'), icon: Languages }, { value: 'auto', label: t('Detect automatically'), icon: ScanLine }, { value: 'en', label: t('English'), icon: Languages }, { value: 'ar', label: t('Arabic · العربية'), icon: Languages }]} /></Field></FieldGroup>
+              <div className="file-well" data-tour="file"><FileAudio aria-hidden="true" /><p>{file ? file.name : t("Audio or video")}</p><span>{file ? `${(file.size / 1048576).toFixed(1)} MB` : t("MP3, M4A, MP4, WAV, OGG and more")}</span><Button variant="outline" onClick={choose} disabled={busy || recording}><FolderOpen aria-hidden="true" data-icon="inline-start" />{file ? t("Change file") : t("Choose file")}</Button></div>
+              <MicrophoneRecorder disabled={busy || saving || recording} locale={uiLanguage} selectedName={file?.name} onActive={setRecording} onRecorded={recorded} onError={setError} />
+              <LiveTranscription disabled={busy || saving || (recording && !liveActive) || !ready} locale={uiLanguage} language={language} device={device} onActive={active => { setLiveActive(active); setRecording(active) }} onBegin={beginLive} onUpdate={setSegments} onComplete={completeLive} onError={setError} />
+              <FieldGroup data-tour="language"><Field><FieldLabel htmlFor="language">{t("Spoken language")}</FieldLabel><AppSelect id="language" icon={Languages} value={language} onValueChange={setLanguage} disabled={busy || recording} className="w-full" options={[{ value: 'fa', label: t('Persian · فارسی'), icon: Languages }, { value: 'auto', label: t('Detect automatically'), icon: ScanLine }, { value: 'en', label: t('English'), icon: Languages }, { value: 'ar', label: t('Arabic · العربية'), icon: Languages }]} /></Field></FieldGroup>
 
-            </CardContent><CardFooter><Button className="w-full" size="lg" data-tour="start" onClick={start} disabled={!file || !ready || busy}><FileText aria-hidden="true" data-icon="inline-start" />{busy ? t("Transcribing…") : t("Transcribe recording")}</Button></CardFooter></Card>
+            </CardContent><CardFooter><Button className="w-full" size="lg" data-tour="start" onClick={start} disabled={!file || !ready || busy || recording}><FileText aria-hidden="true" data-icon="inline-start" />{busy ? t("Transcribing…") : t("Transcribe recording")}</Button></CardFooter></Card>
         </aside>
-        <Card className="transcript-card"><CardHeader><CardTitle>{t("Transcript")}</CardTitle>{segments.length ? <CardDescription>{uiLanguage === 'fa' ? 'متن را بررسی و ویرایش کنید، سپس خروجی بگیرید.' : 'Review and edit the text, then export.'}</CardDescription> : null}</CardHeader>
+        <Card className="transcript-card"><CardHeader><CardTitle>{t("Transcript")}</CardTitle>{segments.length ? <CardDescription>{liveActive ? (uiLanguage === 'fa' ? 'متن هنگام ضبط به‌روز می‌شود. پس از توقف می‌توانید آن را ویرایش کنید.' : 'Text updates during capture. Stop to edit the completed transcript.') : (uiLanguage === 'fa' ? 'متن را بررسی و ویرایش کنید، سپس خروجی بگیرید.' : 'Review and edit the text, then export.')}</CardDescription> : null}</CardHeader>
           <CardContent className="transcript-content">
             {busy ? <div className="working"><AudioLines className="working-icon" aria-hidden="true" /><h2>{t(progress.stage)}</h2><div className="job-timing"><span>{uiLanguage === 'fa' ? 'زمان سپری‌شده' : 'Elapsed'} <b dir="ltr" data-testid="elapsed">{formatDuration(clockNow - (startedAt ?? clockNow))}</b></span><span>{uiLanguage === 'fa' ? 'زمان باقی‌مانده (تقریبی)' : 'Estimated remaining'} <b dir="ltr" data-testid="remaining">{etaDeadline === null ? (uiLanguage === 'fa' ? 'در حال برآورد…' : 'Estimating…') : etaDeadline <= clockNow && progress.percent < 100 ? (uiLanguage === 'fa' ? 'در حال تکمیل…' : 'Finishing…') : formatDuration(Math.max(0, etaDeadline - clockNow))}</b></span></div><Progress value={progress.percent} className="w-full"><ProgressLabel>{t("Progress")}</ProgressLabel><ProgressValue /></Progress><Button variant="outline" onClick={() => window.transcriber.cancel().catch(e => setError(String(e)))}><CircleX aria-hidden="true" data-icon="inline-start" />{t("Cancel transcription")}</Button></div>
-              : segments.length ? <div className="segment-list">{segments.map((s, i) => <div className="segment" key={`${s.start}-${i}`}><span className="timestamp">{time(s.start)}</span><Textarea aria-label={`${uiLanguage === 'fa' ? 'بخش' : 'Passage'} ${i + 1}`} dir={language === 'en' ? 'ltr' : 'auto'} lang={language === 'fa' ? 'fa' : undefined} value={s.text} onChange={e => { setDirty(true); setSegments(prev => prev.map((v, n) => n === i ? { ...v, text: e.target.value } : v)) }} /></div>)}</div>
-              : <Empty className="h-full"><EmptyHeader><EmptyMedia variant="icon"><FileText /></EmptyMedia><EmptyTitle>{uiLanguage === 'fa' ? 'متنی برای نمایش نیست' : 'No transcript yet'}</EmptyTitle><EmptyDescription>{uiLanguage === 'fa' ? 'یک فایل انتخاب کنید و «تبدیل به متن» را بزنید.' : 'Choose a file and select Transcribe recording.'}</EmptyDescription></EmptyHeader></Empty>}
+              : segments.length ? <div className="segment-list">{segments.map((s, i) => <div className="segment" key={`${s.start}-${i}`}><span className="timestamp">{time(s.start)}</span><Textarea readOnly={liveActive} aria-label={`${uiLanguage === 'fa' ? 'بخش' : 'Passage'} ${i + 1}`} dir={language === 'en' ? 'ltr' : 'auto'} lang={language === 'fa' ? 'fa' : undefined} value={s.text} onChange={e => { setDirty(true); setSegments(prev => prev.map((v, n) => n === i ? { ...v, text: e.target.value } : v)) }} /></div>)}</div>
+              : <Empty className="h-full"><EmptyHeader><EmptyMedia variant="icon"><FileText /></EmptyMedia><EmptyTitle>{uiLanguage === 'fa' ? 'متنی برای نمایش نیست' : 'No transcript yet'}</EmptyTitle><EmptyDescription>{liveActive ? (uiLanguage === 'fa' ? 'در حال شنیدن؛ متن پس از پردازش بخش اول ظاهر می‌شود.' : 'Listening. Text will appear after the first audio window is processed.') : (uiLanguage === 'fa' ? 'یک فایل انتخاب کنید یا تبدیل زنده را شروع کنید.' : 'Choose a file or start live transcription.')}</EmptyDescription></EmptyHeader></Empty>}
           </CardContent><CardFooter className="flex-wrap justify-between gap-3"><span className="text-sm text-muted-foreground">{startedAt !== null && !busy ? `${uiLanguage === 'fa' ? 'زمان پردازش' : 'Processing time'}: ${formatDuration(clockNow - startedAt)}` : segments.length ? `${text.split(/\s+/).filter(Boolean).length} ${uiLanguage === 'fa' ? 'واژه' : 'words'} · ${segments.length} ${uiLanguage === 'fa' ? 'بخش' : 'passages'}` : 'TXT · SRT · VTT'}</span><div className="flex flex-wrap gap-2">{historyId && dirty ? <Button disabled={saving || busy} onClick={() => saveEdits()}><Save aria-hidden="true" data-icon="inline-start" />{uiLanguage === 'fa' ? 'ذخیرهٔ تغییرات' : 'Save changes'}</Button> : null}<Button variant="ghost" disabled={!segments.length || busy} onClick={async () => { try { await window.transcriber.copy(text); setNotice(t("Text copied.")) } catch (e) { setError(String(e)) } }}><Copy aria-hidden="true" data-icon="inline-start" />{t("Copy")}</Button>{['txt','srt','vtt'].map(format => <Button variant="outline" key={format} disabled={!segments.length || busy} onClick={() => save(format)}><Download aria-hidden="true" data-icon="inline-start" />{format.toUpperCase()}</Button>)}</div></CardFooter></Card>
       </div>
-      <TranscriptionHistory items={recent} locale={uiLanguage} onOpen={openHistory} disabled={busy || saving} />
+      <TranscriptionHistory items={recent} locale={uiLanguage} onOpen={openHistory} disabled={busy || saving || recording} />
       </>}
       <div className="statusbar" role="status" aria-live="polite">{notice ? <><Check aria-hidden="true" />{notice}</> : null}</div>
     </main>

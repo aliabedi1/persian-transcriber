@@ -14,12 +14,18 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1 xvfb
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1 xvfb pulseaudio pulseaudio-utils
       - run: npm ci
       - run: bash scripts/setup-linux.sh
-      - run: npm run build && npm test && node --test tests/history.test.cjs
+      - run: npm run build && npm run lint && node --test tests/*.test.cjs tests/*.test.mjs
       - name: Check desktop on Linux
         run: xvfb-run -a npm run test:desktop
+      - name: Check live capture with a virtual output monitor
+        run: |
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=ava_release_test
+          pactl set-default-sink ava_release_test
+          xvfb-run -a npm run test:live
       - name: Package AppImage and Debian installer
         run: npx electron-builder --linux AppImage deb --x64 --publish never
       - name: Verify packaged app

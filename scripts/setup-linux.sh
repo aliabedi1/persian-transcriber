@@ -9,12 +9,17 @@ curl -fL --retry 3 https://github.com/ggml-org/whisper.cpp/archive/d2a764c648779
 for backend in cpu vulkan; do
   vulkan=OFF; [[ "$backend" == vulkan ]] && vulkan=ON
   cmake -S "$source_dir" -B "$source_dir/build-$backend" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_VULKAN="$vulkan" -DWHISPER_BUILD_TESTS=OFF
-  cmake --build "$source_dir/build-$backend" --target whisper-cli -j 2
+  cmake --build "$source_dir/build-$backend" --target whisper-cli whisper-server -j 2
   cp "$source_dir/build-$backend/bin/whisper-cli" "runtime/linux/$backend/"
+  cp "$source_dir/build-$backend/bin/whisper-server" "runtime/linux/$backend/"
+  if [[ "$backend" == cpu ]]; then
+    cmake --build "$source_dir/build-$backend" --target whisper-vad-speech-segments -j 2
+    cp "$source_dir/build-$backend/bin/whisper-vad-speech-segments" runtime/linux/cpu/
+  fi
 done
 cp /usr/bin/ffmpeg runtime/linux/ffmpeg/
 # Bundle FFmpeg's non-glibc dependencies; retain the distro's libc and loader.
-for executable in runtime/linux/cpu/whisper-cli runtime/linux/vulkan/whisper-cli runtime/linux/ffmpeg/ffmpeg; do
+for executable in runtime/linux/cpu/whisper-cli runtime/linux/cpu/whisper-server runtime/linux/cpu/whisper-vad-speech-segments runtime/linux/vulkan/whisper-cli runtime/linux/vulkan/whisper-server runtime/linux/ffmpeg/ffmpeg; do
   ldd "$executable" | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | while read -r lib; do
     case "$(basename "$lib")" in libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*) continue;; esac
     cp -L "$lib" "$(dirname "$executable")/"

@@ -1,5 +1,31 @@
 # Validation
 
+## Release 1.5.0 (2026-10-29)
+
+- Built the Windows x64 NSIS installer from version 1.5.0. The unpacked executable reports 1.5.0; CPU/GPU Whisper servers and the CPU VAD helper are present, and no model directory is bundled.
+- Ran the packaged Windows app with a disposable profile and the public Persian FLEURS sample fed through Chromium's simulated microphone. Real local live recognition, stop/save, persisted history, model settings, light/dark appearance and all six README screenshots passed without renderer errors. No normal user profile or private recording was used.
+- Build, lint and all 27 unit tests pass. Source desktop, recording and live-capture regressions passed before packaging. Linux release CI now also exercises microphone/system/combined capture through a virtual PulseAudio output monitor; this does not substitute for physical Linux audio hardware testing.
+
+## Live transcription — issue #2 (2026-10-29)
+
+- Build and lint pass. All 27 engine/model/history/platform/timing/recording/live/system-audio/worklet unit tests pass.
+- Windows desktop checks pass for microphone, real system-output loopback and both sources, including nonzero PCM, transcript updates before stop, pause/resume, releasing tracks, history and TXT/SRT/VTT exports. The repeatable suite simulates recognition; separate real checks pass on CPU for microphone and GPU for system and combined capture, using the public Persian FLEURS fixture.
+- The native engine regression passes silence → real Persian speech → silence on CPU and GPU. Eight seconds of speech took about 24 seconds on CPU and one second on the AMD RX 6700 XT GPU, excluding model loading. This short test is not a sustained benchmark; CPU falls behind with this model/hardware.
+- English live controls and Persian RTL history/transcript were visually inspected, including the minimum 860 px window width. Renderer networking remains blocked. Live sessions have display names and session identifiers, rather than pretending a retained recording exists.
+- Linux capability detection, PCM framing, process cleanup and microphone/system mixing have unit coverage. Linux audio hardware and Linux packaging were not run in this Windows environment. Windows installer generation was not performed; packaging includes the server and VAD helper.
+
+See [live transcription](docs/LIVE_TRANSCRIPTION.md) for reproduction commands and limitations.
+
+## Microphone recording — issue #1 (2026-10-29)
+
+Implemented locally; not a published release. Start/stop controls, elapsed time, playback preview and microphone errors are available in Persian and English. Recordings use the existing local transcription, editing, history and export flow. Temporary microphone audio is removed on replacement or normal app exit.
+
+- `npm run test:recording` passes with real Chromium microphone capture through a simulated audio device, the actual Electron permission handlers and IPC, real FFmpeg decoding, playback loading, progress, history and TXT/SRT/VTT saving. Recognition/model availability are stubbed for this repeatable suite. It also covers denied/missing/busy microphones, empty recordings, recorder errors, invalid media, camera denial, upload regression, and temporary-file cleanup on replacement and app exit. Store unit tests reject unsupported, empty and oversized input.
+- Real CPU recognition also passed on Windows using the existing local Turbo Q5 and Silero models, with the public Persian FLEURS fixture fed into Chromium's simulated microphone. No recognition stub or model download was used for that run. The recorded WebM produced Persian text and saved history/exports; selecting that audio as a file also transcribed successfully. This verifies the path, not general recognition accuracy or physical microphone hardware.
+- Build, lint, all 17 engine/model/history/platform/timing/recording unit tests and the existing desktop readiness/isolation/network checks pass. The English recording preview was visually inspected. Linux and physical microphone hardware have not been tested for this change.
+
+After preparing native tools, run `npm run build` and `npm run test:recording`. For real recognition, also provide the existing local `models/ggml-large-v3-turbo-q5_0.bin`, `models/ggml-silero-v5.1.2.bin` and `tests/fixtures/persian-fleurs.wav`, set `AVA_TEST_RECORDING_REAL=1`, then run `node tests/recording-desktop.cjs`. Test app copies, profiles and outputs are disposable; the normal app profile is preserved.
+
 ## Optional models — issue #3 (2026-10-29)
 
 Implemented and tested locally on the developer's Windows x64 PC with isolated app copies/profiles. These results describe the current working tree, not a published release.

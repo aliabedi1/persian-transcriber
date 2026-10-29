@@ -17,6 +17,23 @@ contextBridge.exposeInMainWorld('transcriber', {
   },
   status: () => ipcRenderer.invoke('status'),
   choose: () => ipcRenderer.invoke('choose'),
+  recording: (bytes, mimeType) => ipcRenderer.invoke('recording', bytes, mimeType),
+  liveStart: options => ipcRenderer.invoke('live:start', options),
+  liveCapabilities: () => ipcRenderer.invoke('live:capabilities'),
+  liveSystemStart: () => ipcRenderer.invoke('live:system-start'),
+  liveSystemStop: () => ipcRenderer.invoke('live:system-stop'),
+  onSystemAudio: callback => {
+    const listener = (_event, bytes) => callback(bytes);
+    ipcRenderer.on('live:system-audio', listener);
+    return () => ipcRenderer.removeListener('live:system-audio', listener);
+  },
+  liveAudio: bytes => ipcRenderer.invoke('live:audio', bytes),
+  liveStop: options => ipcRenderer.invoke('live:stop', options),
+  onLiveUpdate: callback => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('live:update', listener);
+    return () => ipcRenderer.removeListener('live:update', listener);
+  },
   transcribe: (language, device, quality) => ipcRenderer.invoke('transcribe', language, device, quality),
   cancel: () => ipcRenderer.invoke('cancel'),
   save: data => ipcRenderer.invoke('save', data),

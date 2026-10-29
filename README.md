@@ -2,16 +2,26 @@
 
 A Windows and Linux app that turns Persian audio and video into editable text. Transcription runs on your computer, including when you are offline. There is no account or paid API.
 
+## Features
+
+- **Files and microphone recordings:** transcribe audio/video files, or record your microphone and preview the audio first.
+- **Live transcription:** read an updating Persian transcript while capturing the microphone, system/meeting audio, or both. Pause, resume, then stop and save.
+- **Offline recognition:** audio stays on your computer. Download a model once from Settings → Models; choose Turbo Q5 for speed or Large v3 Q5 for another accuracy option.
+- **CPU and Vulkan GPU:** automatic processor selection with CPU fallback. A compatible GPU is recommended for continuous live transcription.
+- **Editable transcripts and exports:** review passages, copy text, and export TXT, SRT or VTT. Completed sessions are saved to local history automatically.
+- **Persian and English interface:** RTL/LTR layouts, light/dark/system appearance, and a replayable user guide.
+- **Windows and Linux:** Windows supports system-audio loopback. Linux system capture uses PulseAudio or PipeWire-Pulse and needs `pulseaudio-utils`.
+
 ## Install
 
 1. Open the [latest release](https://github.com/aliabedi1/persian-transcriber/releases/latest).
-2. Download **Ava-Setup-1.3.0-x64.exe** and run it.
+2. Download **Ava-Setup-1.5.0-x64.exe** and run it.
 3. Open **Ava** from the desktop or Start menu.
 
 Linux x64 (Ubuntu 24.04+ or compatible, with an AVX2-capable CPU):
 
-- **Ava-1.3.0-linux-amd64.deb**: open with your software installer, or run `sudo apt install ./Ava-1.3.0-linux-amd64.deb`. Ava appears in the applications menu.
-- **Ava-1.3.0-linux-x86_64.AppImage**: portable. Run `chmod +x Ava-1.3.0-linux-x86_64.AppImage`, then open it. Without FUSE, launch with `--appimage-extract-and-run`.
+- **Ava-1.5.0-linux-amd64.deb**: open with your software installer, or run `sudo apt install ./Ava-1.5.0-linux-amd64.deb`. Ava appears in the applications menu.
+- **Ava-1.5.0-linux-x86_64.AppImage**: portable. Run `chmod +x Ava-1.5.0-linux-x86_64.AppImage`, then open it. Without FUSE, launch with `--appimage-extract-and-run`.
 
 Linux GPU mode requires your GPU vendor's Vulkan driver. Auto falls back to CPU if GPU startup fails. Release checks run on CPU; Linux GPU hardware has not been tested.
 
@@ -21,13 +31,24 @@ The installer is unsigned, so Windows may show a publisher warning. Uninstall th
 
 ## Use
 
-1. Download and select a model in **تنظیمات ← مدل‌ها / Settings → Models**, then click **انتخاب فایل / Choose file** and select an audio or video file.
+1. Download and select a model in **تنظیمات ← مدل‌ها / Settings → Models**. Open **Start transcription**, then select an audio/video file with **انتخاب فایل / Choose file**, or click **ضبط با میکروفون / Record from microphone**. Allow microphone access if prompted, speak, then click **توقف ضبط / Stop recording**. You can play back the recording before transcribing.
 2. Set **زبان گفتار / Spoken language** to the language in the recording. Persian is selected by default.
 3. Choose a downloaded model in settings and a processor, or keep your saved selection. Model changes apply to the next job; an active transcription keeps its original model.
 4. Click **تبدیل به متن / Transcribe recording**.
 5. Review and edit the passages. Use **Copy**, **TXT**, **SRT**, or **VTT** to save the result.
 
 Completed transcriptions are saved automatically as TXT, SRT, and VTT under **Documents/Ava**, in date folders. Use **Change folder** to choose another location. Windows, Linux, and macOS folder locations come from the OS. Changing the folder affects future jobs; existing files stay where they were saved.
+
+### Live transcription
+
+Open **Start transcription**, choose a **Live audio source**, then **Start live transcription / شروع تبدیل زنده**. You can capture the microphone, system/meeting audio, or both. Text appears during capture after short audio windows are processed. **Pause live** pauses incoming audio while queued transcription finishes; **Resume live** continues the same session. **Stop and save** releases the audio devices, processes the final audio, and saves the transcript to history and TXT/SRT/VTT. You can then edit, copy, or export it. Live audio is temporary; it is not archived.
+
+- **Windows:** system capture includes all audio on the captured output, including meeting participants and notifications. It uses Electron's desktop-capture permission path; only sound is processed, and screen video is not saved. The local microphone is included only when selected.
+- **Linux:** system capture reads the default output's monitor through PulseAudio or PipeWire-Pulse. Install `pulseaudio-utils` for `pactl`, keep the audio server running, and use an FFmpeg build with PulseAudio input. If those requirements are missing, system sources are disabled with setup guidance; microphone capture remains available. Restart capture after changing the default output device.
+- **Both sources:** use headphones to reduce microphone pickup of meeting playback. Echo cancellation and overlap merging reduce duplicates, but cannot guarantee perfect separation or identify individual speakers.
+- **Speed:** processing remains offline. The model stays loaded for the session. Updates use eight-second audio windows with one second of overlap, plus inference time. A slower CPU/model can fall behind; Ava shows a catch-up message and stops accepting audio if the bounded queue fills. Pause to let it catch up, or use Turbo/GPU. Live timestamps count captured audio and exclude paused time.
+
+See [live transcription implementation and validation](docs/LIVE_TRANSCRIPTION.md) for platform support and test commands. Windows microphone, loopback and combined capture have desktop coverage; Linux capture still needs validation on Linux audio hardware.
 
 The main page lists the latest five transcriptions. Use **All history / سوابق** to browse entries grouped by date and reopen them without the original recording. Edits can be saved with **Save changes / ذخیرهٔ تغییرات**. History and settings are stored in a local SQLite database in the app data folder. If automatic file saving fails, the app keeps the history entry and offers a retry.
 
@@ -42,6 +63,10 @@ Common inputs include MP3, M4A, WAV, OGG, FLAC, MP4, MKV, MOV, and WebM. Video f
 
 ## Screenshots
 
+Home with quick access to transcription, history and settings:
+
+![Ava 1.5 home in Persian](docs/screenshots/home.png)
+
 Persian interface in light mode:
 
 ![Persian workspace in light mode](docs/screenshots/persian-light.png)
@@ -50,18 +75,28 @@ A transcript in dark mode, with editing and export controls:
 
 ![Persian transcript in dark mode](docs/screenshots/persian-dark-transcript.png)
 
+Live microphone transcription with recording status, an input meter, and pause/stop controls:
+
+![Live Persian microphone transcription](docs/screenshots/live-transcription.png)
+
+Download, validate and select offline models in settings:
+
+![Offline model settings](docs/screenshots/models.png)
+
 History groups saved transcriptions by date:
 
 ![Transcription history grouped by date](docs/screenshots/history.png)
 
-Screenshots show version 1.2.0. The example audio is a public Persian sample from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), not a user's recording.
+Screenshots show version 1.5.0 using an isolated demo profile. Transcript examples come from the public Persian sample in [Google FLEURS](https://huggingface.co/datasets/google/fleurs), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They contain no private user recordings or history. Automatic recognition can contain errors.
 
 ## What to expect
 
 - Speech detection skips non-speech sections before transcription.
 - Recordings are processed locally and are not uploaded. Temporary audio is removed after completion or cancellation; a crash can leave temporary files.
 - Automatic transcripts can contain wrong words, especially names and technical terms. Review them before use.
-- Ava does not identify speakers, translate recordings, or record a live microphone.
+- Microphone recordings stay local. The active recording indicator and elapsed timer remain visible until you stop. Allow access in your system microphone privacy settings if access is denied; connect a microphone if none is found.
+- Microphone audio is temporary and is removed when another recording/file replaces it or Ava exits normally. Saved transcripts remain in history; the original microphone audio is not archived. A crash can leave temporary audio files.
+- Ava does not identify speakers or translate recordings.
 
 See [VALIDATION.md](VALIDATION.md) for tests and known accuracy limits.
 
@@ -83,6 +118,8 @@ npm run build          # Build the interface
 npm test               # Engine unit tests
 npm run test:models    # Model store tests + real downloads and Windows/Linux desktop inference
 npm run test:desktop   # Desktop checks
+npm run test:recording # Microphone capture, permissions, decoding, history and failure checks
+npm run test:live      # Live processing, capture sources, pause/resume and saving checks (Windows)
 npm run test:timing    # Timer checks
 npm run test:history   # SQLite storage and history checks
 npm run dist:win       # Build the Windows installer
@@ -99,7 +136,7 @@ Ava's code is [MIT licensed](LICENSE). It uses [Whisper.cpp](https://github.com/
 Requires Ubuntu 24.04+ x64 and Node.js 24+:
 
 ```bash
-sudo apt install build-essential cmake ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1
+sudo apt install build-essential cmake ffmpeg libvulkan-dev glslc spirv-headers glslang-tools libgtk-3-0 libnss3 libasound2t64 libgbm1 pulseaudio-utils
 npm ci
 bash scripts/setup-linux.sh
 npm run build

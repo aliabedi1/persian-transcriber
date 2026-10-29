@@ -98,11 +98,11 @@ function createHistoryStore(directory, defaultFolder) {
       return rows;
     },
     get,
-    async add({ sourcePath, language, quality, device, segments }) {
+    async add({ sourcePath, sourceName, language, quality, device, segments }) {
       const id = randomUUID();
       const text = segments.map(s => s.text).join('\n');
       db.prepare(`INSERT INTO transcriptions(id,created_at,source_name,source_path,language,quality,device,text,segments,segment_count)
-        VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, new Date().toISOString(), path.basename(sourcePath), sourcePath, language, quality, device, text, JSON.stringify(segments), segments.length);
+        VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, new Date().toISOString(), sourceName || path.basename(sourcePath), sourcePath, language, quality, device, text, JSON.stringify(segments), segments.length);
       return exportRecord(id);
     },
     async update(id, segments) {
